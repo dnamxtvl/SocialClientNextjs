@@ -1,0 +1,491 @@
+"use client";
+
+import { useDispatch } from "react-redux";
+import { setProfile, setToken } from "@/redux/slices/AuthSlice";
+import { useEffect, useState } from "react";
+import { store } from "@/redux/store";
+import services from "@/services/Index";
+import { Alert } from "@mui/material";
+import CircularProgress from "@mui/material/CircularProgress";
+import Backdrop from "@mui/material/Backdrop";
+import Snackbar from "@mui/material/Snackbar";
+import { useRouter } from "next/navigation";
+import { setCookie } from "cookies-next";
+import { EXPIRES_COOKIE_DAY } from "@/constants/application";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import { DATE_REGISTER_ACCOUNT } from "@/constants/application";
+import moment from "moment";
+
+export default function Login() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errorMessages, setErrorMessages] = useState(Array<string>);
+  const [errorMessagesRegister, setErrorMessagesRegister] = useState(Array<string>);
+  const [loading, setLoading] = useState(false);
+  const [loginSuccess, setLoginSucess] = useState(false);
+  const [openModalRegister, setOpenModalRegister] = useState(false);
+  const [dayOfBirthArray, setDayOfBirthArray] = useState(Array<number>);
+  const [monthOfBirthArray, setMonthOfBirthArray] = useState(Array<number>);
+  const [yearOfBirthArray, setYearOfBirthArray] = useState(Array<number>);
+  const [surName, setSurName] = useState("");
+  const [name, setName] = useState("");
+  const [emailRegister, setEmailRegister] = useState("");
+  const [passwordRegister, setPasswordRegister] = useState("");
+  const [dayOfbirthDay, setDayOfBirth] = useState(moment().date());
+  const [monthOfBirth, setMonthOfBirth] = useState(moment().month());
+  const [yearOfBirth, setYearOfBirth] = useState(moment().year());
+  const [gender, setGender] = useState(1);
+  const router = useRouter();
+
+  const dispatch = useDispatch();
+
+  const login: Function = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setLoading(true);
+    try {
+      let res;
+      res = await services.auth.login({
+        email: email,
+        password: password,
+        remember_me: false,
+      });
+
+      dispatch(setToken(res.data.token));
+      setCookie("isLogined", true, {
+        expires: new Date(new Date().getTime() + EXPIRES_COOKIE_DAY),
+      });
+      setCookie("token", res.data.token, {
+        expires: new Date(new Date().getTime() + EXPIRES_COOKIE_DAY),
+      });
+      dispatch(
+        setProfile({
+          id: res.data.user.id,
+          userName: res.data.user.first_name + " " + res.data.user.last_name,
+          avatar: res.data.user.avatar,
+        })
+      );
+
+      setLoading(false);
+      setLoginSucess(true);
+      router.push("/");
+    } catch (error: any) {
+      setLoading(false);
+      setErrorMessages(error.message);
+    }
+  };
+
+  const checkIsLogined: Function = () => {
+    if (store.getState().auth.isLogined == "true") {
+      router.push("/");
+    }
+  };
+
+  const handleCloseNotification: Function = () => {
+    setLoginSucess(false);
+  };
+
+  const handleClickOpenModalRegister: Function = () => {
+    setOpenModalRegister(true);
+  };
+
+  const handleCloseModalRegister: Function = () => {
+    setOpenModalRegister(false);
+  };
+
+  const register: Function = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+  };
+
+  const setTimeOfBirthArrayFromConfig = () => {
+    const arrayDate: number[] = Array.from(
+      { length: DATE_REGISTER_ACCOUNT.COUNT_DATE_OF_MONTH },
+      (_, index) => index + 1
+    );
+  
+    const arrayMonth: number[] = Array.from(
+      { length: DATE_REGISTER_ACCOUNT.COUNT_MONTH_OF_YEAR },
+      (_, index) => index + 1
+    );
+  
+    const arrayYear: number[] = Array.from(
+      { length: moment().year() - DATE_REGISTER_ACCOUNT.MIN_YEAR_REGISTER_ACCOUNT + 1 },
+      (_, index) => DATE_REGISTER_ACCOUNT.MIN_YEAR_REGISTER_ACCOUNT + index
+    );
+  
+    setDayOfBirthArray(arrayDate);
+    setMonthOfBirthArray(arrayMonth);
+    setYearOfBirthArray(arrayYear);
+  };
+
+  useEffect(() => {
+    checkIsLogined();
+    setTimeOfBirthArrayFromConfig();
+  }, []);
+
+  return (
+    <main>
+      {/* alert and notification  */}
+      <Snackbar
+        open={loginSuccess}
+        autoHideDuration={3000}
+        onClose={handleCloseNotification}
+      >
+        <Alert severity="success" sx={{ width: "100%" }}>
+          Đăng nhập thành công!
+        </Alert>
+      </Snackbar>
+      {loading && (
+        <Backdrop
+          open={loading}
+          sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        >
+          <CircularProgress />
+        </Backdrop>
+      )}
+      {/* end alert and notification  */}
+      <section className="text-gray-600 body-font bg-gray-100">
+        <div className="container xl:px-32 px-5 py-36 mx-auto flex flex-wrap items-center">
+          <div className="lg:w-3/5 md:w-1/2 md:pr-16 lg:pr-0 pr-0">
+            <h1 className="title-font font-bold lg:text-7xl text-6xl text-blue-600 text-center md:text-left ">
+              facebook
+            </h1>
+            <p className="leading-relaxed mt-4 lg:text-3xl text-2xl lg:max-w-xl font-medium  text-black text-center md:text-left ">
+              Facebook helps you connect and share with the people in your life.
+            </p>
+          </div>
+          <form
+            className="lg:w-2/6 md:w-1/2 bg-white shadow-lg rounded-lg p-8 flex flex-col md:ml-auto w-full mt-10 md:mt-0"
+            onSubmit={login}
+          >
+            {errorMessages.length > 0 && (
+              <div className="mb-4">
+                {errorMessages.map((errorMessage, index) => (
+                  <Alert key={index} severity="error">
+                    {errorMessage}
+                  </Alert>
+                ))}
+              </div>
+            )}
+            <div className="relative mb-4">
+              <input
+                type="email"
+                id="email"
+                name="email"
+                placeholder="Email"
+                maxLength={255}
+                minLength={6}
+                className="w-full bg-white rounded border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-lg outline-none  text-gray-700 py-1 px-3 leading-8 transition-colors duration-200 ease-in-out"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="relative mb-4">
+              <input
+                type="text"
+                id="password"
+                name="password"
+                placeholder="Password"
+                maxLength={255}
+                minLength={6}
+                className="w-full  bg-white rounded border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200  outline-none text-lg text-gray-700 py-1 px-3 leading-8 transition-colors duration-200 ease-in-out"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            <button className="text-white border-0 py-2 px-8 focus:outline-none font-medium  rounded text-xl bg-blue-600 ">
+              Log In
+            </button>
+            <p className="text-sm text-blue-500 mt-3 text-center py-4">
+              Forgotten password?
+            </p>
+            <hr className="my-5" />
+            <Button
+              variant="outlined"
+              onClick={handleClickOpenModalRegister}
+              className="text-white border-0 py-2 px-8 hover:bg-green-500 focus:outline-none font-medium rounded text-xl bg-green-400"
+            >
+              Tạo tài khoản mới
+            </Button>
+          </form>
+          <Dialog
+            open={openModalRegister}
+            onClose={handleCloseModalRegister}
+            aria-labelledby="alert-dialog-title"
+            aria-describedby="alert-dialog-description"
+          >
+            <DialogTitle id="alert-dialog-title">{"Đăng ký"}</DialogTitle>
+            <DialogContent>
+              <form
+                className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6"
+                onSubmit={register}
+              >
+                {errorMessagesRegister.length > 0 && (
+                  <div className="mb-4">
+                    {errorMessagesRegister.map((errorMessage, index) => (
+                      <Alert key={index} severity="error">
+                        {errorMessage}
+                      </Alert>
+                    ))}
+                  </div>
+                )}
+                <div className="sm:col-span-3">
+                  <div className="mt-2">
+                    <input
+                      type="text"
+                      name="sur-name"
+                      placeholder="Họ"
+                      minLength={2}
+                      maxLength={25}
+                      id="sur-name"
+                      value={surName}
+                      onChange={(e) => setSurName(e.target.value)}
+                      required
+                      autoComplete="given-name"
+                      className="pl-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    />
+                  </div>
+                </div>
+                <div className="sm:col-span-3">
+                  <div className="mt-2">
+                    <input
+                      type="text"
+                      name="name"
+                      placeholder="Tên"
+                      id="name"
+                      minLength={2}
+                      maxLength={25}
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      autoComplete="family-name"
+                      className="pl-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    />
+                  </div>
+                </div>
+                <div className="sm:col-span-6">
+                  <div className="">
+                    <input
+                      type="email"
+                      name="email-register"
+                      placeholder="Địa chỉ email"
+                      id="email-register"
+                      minLength={6}
+                      maxLength={255}
+                      value={emailRegister}
+                      onChange={(e) => setEmailRegister(e.target.value)}
+                      autoComplete="given-name"
+                      className="pl-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    />
+                  </div>
+                </div>
+                <div className="sm:col-span-6">
+                  <div className="">
+                    <input
+                      type="password"
+                      name="password-register"
+                      placeholder="Mật khẩu mới"
+                      id="password-register"
+                      minLength={6}
+                      maxLength={25}
+                      value={passwordRegister}
+                      onChange={(e) => setPasswordRegister(e.target.value)}
+                      autoComplete="given-name"
+                      className="pl-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    />
+                  </div>
+                </div>
+                <legend className="sm:col-span-6 text-sm font-semibold leading-6 text-gray-900">
+                  Ngày sinh
+                </legend>
+                <div className="sm:col-span-2">
+                  <div className="">
+                    <select
+                      name="day-of-birth"
+                      placeholder="Mật khẩu mới"
+                      id="day-of-birth-register"
+                      autoComplete="given-name"
+                      value={dayOfbirthDay}
+                      onChange={(e) => setDayOfBirth(parseInt(e.target.value))}
+                      className="pl-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    >
+                      {dayOfBirthArray.map((option, index) => (
+                        <option
+                          key={index}
+                          value={option}
+                          className="text-center"
+                        >
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="sm:col-span-2">
+                  <div className="">
+                    <select
+                      name="month-of-birth"
+                      placeholder="Mật khẩu mới"
+                      id="month-of-birth-register"
+                      autoComplete="given-name"
+                      value={monthOfBirth}
+                      onChange={(e) =>
+                        setMonthOfBirth(parseInt(e.target.value))
+                      }
+                      className="pl-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    >
+                      {monthOfBirthArray.map((option, index) => (
+                        <option
+                          key={index}
+                          value={option}
+                          className="text-center"
+                        >
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="sm:col-span-2">
+                  <div className="">
+                    <select
+                      name="year-of-birth"
+                      id="year-of-birth-register"
+                      autoComplete="given-name"
+                      value={yearOfBirth}
+                      onChange={(e) => setYearOfBirth(parseInt(e.target.value))}
+                      className="pl-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    >
+                      {yearOfBirthArray.map((option, index) => (
+                        <option
+                          key={index}
+                          value={option}
+                          className="text-center"
+                        >
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <legend className="sm:col-span-6 text-sm font-semibold leading-6 text-gray-900">
+                  Giới tính
+                </legend>
+                <div className="sm:col-span-2">
+                  <>
+                    <input
+                      id="men-gender"
+                      name="gender"
+                      type="radio"
+                      value={1}
+                      checked={gender == 1}
+                      onChange={(e) => setGender(parseInt(e.target.value))}
+                      className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                    />
+                    <label
+                      htmlFor="men-gender"
+                      className="block text-sm font-medium leading-6 text-gray-900"
+                    >
+                      Nam
+                    </label>
+                  </>
+                </div>
+                <div className="sm:col-span-2">
+                  <>
+                    <input
+                      id="female-gender"
+                      name="gender"
+                      type="radio"
+                      value={0}
+                      checked={gender == 0}
+                      onChange={(e) => setGender(parseInt(e.target.value))}
+                      className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                    />
+                    <label
+                      htmlFor="female-gender"
+                      className="block text-sm font-medium leading-6 text-gray-900"
+                    >
+                      Nữ
+                    </label>
+                  </>
+                </div>
+                <div className="sm:col-span-6">
+                  <p className="mt-1 text-sm leading-6 text-gray-600">
+                    Những người dùng dịch vụ của chúng tôi có thể đã tải thông
+                    tin liên hệ của bạn lên Facebook.
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-gray-600">
+                    Bằng cách nhấp vào Đăng ký, bạn đồng ý với Điều khoản, Chính
+                    sách quyền riêng tư và Chính sách cookie của chúng tôi. Bạn
+                    có thể nhận được thông báo của chúng tôi qua SMS và hủy nhận
+                    bất kỳ lúc nào.
+                  </p>
+                </div>
+                <div className="sm:col-span-6 flex justify-center">
+                  <Button
+                    type="submit"
+                    variant="outlined"
+                    onClick={handleClickOpenModalRegister}
+                    className="text-white border-0 py-2 px-8 hover:bg-green-500 focus:outline-none font-medium rounded text-xl bg-green-400"
+                  >
+                    Đăng ký
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+          <div className="lg:w-2/6 md:w-1/2 bg-transparent rounded-lg p-8 flex flex-col md:ml-auto w-full mt-3 md:mt-0">
+            <p className="text-sm text-gray-700 mt-3 text-center">
+              <b>Create a Page</b> for a celebrity, band or business
+            </p>
+          </div>
+        </div>
+      </section>
+      <div className="container mx-auto px-6">
+        <div className="mt-10 border-t-2 border-gray-300 flex flex-col items-center">
+          <div className="sm:w-2/3 text-center py-6">
+            <p className="text-sm text-blue-700 font-bold mb-2">
+              Responsive Facebook Login clone © 2023 Created by Namdv
+            </p>
+          </div>
+        </div>
+      </div>
+      <footer className="rounded-lg m-8">
+        <div className="w-full mx-auto max-w-screen-xl p-4 md:flex md:items-center md:justify-between">
+          <span className="text-sm text-gray-500 sm:text-center dark:text-gray-400">
+            © 2023{" "}
+            <a href="https://flowbite.com/" className="hover:underline">
+              Flowbite™
+            </a>
+            . All Rights Reserved.
+          </span>
+          <ul className="flex flex-wrap items-center mt-3 text-sm font-medium text-gray-500 dark:text-gray-400 sm:mt-0">
+            <li>
+              <a href="#" className="hover:underline me-4 md:me-6">
+                About
+              </a>
+            </li>
+            <li>
+              <a href="#" className="hover:underline me-4 md:me-6">
+                Privacy Policy
+              </a>
+            </li>
+            <li>
+              <a href="#" className="hover:underline me-4 md:me-6">
+                Licensing
+              </a>
+            </li>
+            <li>
+              <a href="#" className="hover:underline">
+                Contact
+              </a>
+            </li>
+          </ul>
+        </div>
+      </footer>
+    </main>
+  );
+}
