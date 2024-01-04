@@ -428,7 +428,6 @@ export default function Login() {
                   <Button
                     type="submit"
                     variant="outlined"
-                    onClick={handleClickOpenModalRegister}
                     className="text-white border-0 py-2 px-8 hover:bg-green-500 focus:outline-none font-medium rounded text-xl bg-green-400"
                   >
                     Đăng ký
