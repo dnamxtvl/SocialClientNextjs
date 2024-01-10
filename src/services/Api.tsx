@@ -1,17 +1,14 @@
 import HTTP_CODE from "@/constants/http-code";
 import VALIDATION from "@/constants/validation";
 import { store } from "@/redux/store";
+import { redirect } from 'next/navigation';
+import { ErrorResponse } from "@/types";
 
 const headers = {
   "content-type": "application/json",
   "accept": "application/json",
   "Authorization": ""
 };
-
-interface ErrorResponse {
-  code: number;
-  message: Array<string>;
-}
 
 async function handleResponse(p_response: any) {
   if (p_response.ok) {
@@ -25,6 +22,7 @@ async function handleResponse(p_response: any) {
     let errorMessages: Array<string> = [];
     let errorsObject: any;
     let errors: Array<string> = [];
+    let codeEnumError : number = 0;
     if (json.errors && p_response.status == VALIDATION.ERROR_CODE.VALIDATE_FAILED) {
       errorsObject = Object.fromEntries(
         Object.entries(json.errors).map(([key, value]: [string, string[]]) => [
@@ -40,12 +38,16 @@ async function handleResponse(p_response: any) {
       errors = errorMessages;
     } else {
       errors = [json.message];
+      codeEnumError = json.errors.code;
     }
 
     let error: ErrorResponse = {
       code: p_response.status,
       message: errors,
+      codeEnumError: codeEnumError
     };
+
+    console.log(error);
 
     throw error;
   }
@@ -70,7 +72,15 @@ const get: Function = (
 
   return fetch(url, {
     headers: newHeaders,
-  }).then((p_response) => handleResponse(p_response));
+  }).then(async (p_response) => await handleResponse(p_response)).catch((error) => {
+    let errorResponse: ErrorResponse = {
+      code: error.code ?? 500,
+      message: [error.message],
+      codeEnumError: error.codeEnumError
+    };
+
+    throw errorResponse;
+  });
 };
 
 const post: Function = (p_route: string, p_body: Object) => {
@@ -83,6 +93,7 @@ const post: Function = (p_route: string, p_body: Object) => {
     let errorResponse: ErrorResponse = {
       code: error.code ?? 500,
       message: [error.message],
+      codeEnumError: error.codeEnumError
     };
 
     throw errorResponse;

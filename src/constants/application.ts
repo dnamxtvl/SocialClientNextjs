@@ -11,6 +11,8 @@ export const EXPIRES_COOKIE_DAY = 365 * 24 * 60 * 60 * 1000
 
 export const BACKEND_URL_DEFAULT = 'http://ipcc_backend.test/api/';
 
+export const BACKEND_PATH_VERIFY_EMAIL = 'email/verify';
+
 export const JWT_KEY_ACEESS_TOKEN_NAME = '$2a$12$t538/WFhx.1iL//lRk3kI.9Ymqoyysb76hjXnPoa6b.8ZBx31Fg/i';
 
 export const USER_PROFILE_KEY_NAME = '$2a$12$umoiVcYSuVz.Eja.JvtnbuXBxFdpRcdUs8hLyq7T2DGMrMNSvJzSa';
