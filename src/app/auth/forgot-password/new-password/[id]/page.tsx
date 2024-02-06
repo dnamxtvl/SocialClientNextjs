@@ -8,31 +8,44 @@ import { useRouter } from "next/navigation";
 import Snackbar from "@mui/material/Snackbar";
 import { Alert } from "@mui/material";
 import VALIDATION from "@/constants/validation";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
+import Button from "@mui/material/Button";
+import { useSearchParams } from "next/navigation";
 
-export default function forgetPassword({ params }: { params: { id: number } }) {
+export default function setNewPasswordAfterForgot({
+  params,
+}: {
+  params: { id: number };
+}) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const [verifySuccess, setVerifySuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState([]);
-  const [email, setEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [failVerify, setFailVerify] = useState(false);
-  const [statusResendOTP, setStatusResendOTP] = useState(false);
+  const [openModalChangePasswordSuccess, setopenModalChangePasswordSuccess] =
+    useState(false);
+  const searchParams = useSearchParams();
 
-  const sendOtpEmail: Function = async (
+  const setNewPasswordAfterForgot: Function = async (
     event: React.FormEvent<HTMLFormElement>
   ) => {
     event.preventDefault();
     setLoading(true);
     try {
-      let res = await services.auth.forgotPassword({
-        email: email,
+      await services.auth.setNewPasswordAfterForgot({
+        otp_id: params.id,
+        password: newPassword,
+        token: searchParams.get("token"),
       });
 
       setLoading(false);
       setVerifySuccess(true);
-      setTimeout(function () {
-        router.push("/auth/forgot-password/verify-otp/" + res.data.id);
-      }, 1000);
+      setopenModalChangePasswordSuccess(true);
     } catch (error: any) {
       setFailVerify(true);
       setErrorMessage(error.message.slice());
@@ -40,19 +53,44 @@ export default function forgetPassword({ params }: { params: { id: number } }) {
     }
   };
 
+  const handleCloseModalChangePasswordSuccess = () => {
+    setopenModalChangePasswordSuccess(false);
+  };
+
+  const handleCloseModalAndRedirectLogin = () => {
+    setopenModalChangePasswordSuccess(false);
+    router.push("/auth/login");
+  };
+
   return (
     <main>
+      <Dialog
+        open={openModalChangePasswordSuccess}
+        onClose={handleCloseModalChangePasswordSuccess}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          {"Reset mật khẩu thành công!"}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            Bạn đã đổi mật khẩu thành công,hãy đăng nhập lại với mật khẩu mới!
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseModalChangePasswordSuccess}>Hủy</Button>
+          <Button onClick={handleCloseModalAndRedirectLogin} autoFocus>
+            Đi đến đăng nhập
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Snackbar open={failVerify} autoHideDuration={1000}>
         <Alert
           severity={!verifySuccess ? "error" : "success"}
           sx={{ width: "100%" }}
         >
-          {!verifySuccess ? errorMessage : "Xác thực thành công!"}
-        </Alert>
-      </Snackbar>
-      <Snackbar open={statusResendOTP} autoHideDuration={1000}>
-        <Alert severity="success" sx={{ width: "100%" }}>
-          {"Hệ thống đã gửi lại OTP!"}
+          {!verifySuccess ? errorMessage : "Đổi mật khẩu thành công!"}
         </Alert>
       </Snackbar>
       {loading && (
@@ -73,29 +111,29 @@ export default function forgetPassword({ params }: { params: { id: number } }) {
                 </h1>
               </div>
               <h1 className="text-3xl h-48 flex items-center justify-center text-green-500 font-mono">
-                Quên mật khẩu
+                Mật khẩu mới
               </h1>
             </div>
-            <form onSubmit={sendOtpEmail}>
+            <form onSubmit={setNewPasswordAfterForgot}>
               <div className="content__body py-8 border-b">
                 <div className="col-span-full">
                   <label
                     htmlFor="street-address"
                     className="block text-sm font-medium leading-6 text-gray-900"
                   >
-                    Nhập Email
+                    Mật khẩu mới
                   </label>
                   <div className="mt-2">
                     <input
-                      type="email"
-                      name="verify-otp"
+                      type="password"
+                      name="password"
                       id="street-verify"
                       autoComplete="verify"
-                      placeholder="Nhập email của bạn"
-                      value={email}
-                      minLength={VALIDATION.EMAIL.MIN_LENGTH}
-                      maxLength={VALIDATION.EMAIL.MAX_LENGTH}
-                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Mật khẩu lớn hơn 8 ký tự"
+                      value={newPassword}
+                      minLength={VALIDATION.PASSWORD.MIN_LENGTH}
+                      maxLength={VALIDATION.PASSWORD.MAX_LENGTH}
+                      onChange={(e) => setNewPassword(e.target.value)}
                       required
                       className="pl-2 pr-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                     />
@@ -105,7 +143,7 @@ export default function forgetPassword({ params }: { params: { id: number } }) {
                   type="submit"
                   className="text-white border-0 py-2 px-8 focus:outline-none mt-4 mb-4 font-medium rounded text-xl bg-green-600 text-center rounded w-full"
                 >
-                  Nhận OTP
+                  Submit
                 </button>
                 <p className="text-sm">
                   Namdv Dev lỏ

@@ -8,31 +8,37 @@ import { useRouter } from "next/navigation";
 import Snackbar from "@mui/material/Snackbar";
 import { Alert } from "@mui/material";
 import VALIDATION from "@/constants/validation";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
+import Button from "@mui/material/Button";
 
-export default function forgetPassword({ params }: { params: { id: number } }) {
+export default function verifyEmail({ params }: { params: { id: number } }) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const [verifySuccess, setVerifySuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState([]);
-  const [email, setEmail] = useState("");
+  const [codeOTP, setCodeOTP] = useState("");
   const [failVerify, setFailVerify] = useState(false);
   const [statusResendOTP, setStatusResendOTP] = useState(false);
+  const [openModalVerifySuccess, setopenModalVerifySuccess] = useState(false);
 
-  const sendOtpEmail: Function = async (
+  const checkIsSuccessVerifyEmail: Function = async (
     event: React.FormEvent<HTMLFormElement>
   ) => {
     event.preventDefault();
     setLoading(true);
     try {
-      let res = await services.auth.forgotPassword({
-        email: email,
+      await services.auth.verifyEmail({
+        user_id: params.id,
+        verify_code: codeOTP,
       });
 
       setLoading(false);
       setVerifySuccess(true);
-      setTimeout(function () {
-        router.push("/auth/forgot-password/verify-otp/" + res.data.id);
-      }, 1000);
+      setopenModalVerifySuccess(true);
     } catch (error: any) {
       setFailVerify(true);
       setErrorMessage(error.message.slice());
@@ -40,8 +46,53 @@ export default function forgetPassword({ params }: { params: { id: number } }) {
     }
   };
 
+  const resendVerifyOTP = async () => {
+    setLoading(true);
+
+    try {
+      await services.auth.resendVerifyEmail(params.id);
+      setLoading(false);
+      setStatusResendOTP(true);
+    } catch (error: any) {
+      setFailVerify(true);
+      setErrorMessage(error.message.slice());
+      setLoading(false);
+    }
+  };
+
+  const handleCloseModalVerifySuccess = () => {
+    setopenModalVerifySuccess(false);
+  };
+
+  const handleCloseModalAndRedirectLogin = () => {
+    setopenModalVerifySuccess(false);
+    router.push("/auth/login");
+  }
+
   return (
     <main>
+      <Dialog
+        open={openModalVerifySuccess}
+        onClose={handleCloseModalVerifySuccess}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          {"Chào mừng bạn đến với Fakebook"}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            Bạn đã xác thực email thành công,hãy đăng nhập lại với mật khẩu đã
+            tạo trước đó!
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseModalVerifySuccess}>Hủy</Button>
+          <Button onClick={handleCloseModalAndRedirectLogin} autoFocus>
+            Đi đến đăng nhập
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Snackbar open={failVerify} autoHideDuration={1000}>
         <Alert
           severity={!verifySuccess ? "error" : "success"}
@@ -73,29 +124,29 @@ export default function forgetPassword({ params }: { params: { id: number } }) {
                 </h1>
               </div>
               <h1 className="text-3xl h-48 flex items-center justify-center text-green-500 font-mono">
-                Quên mật khẩu
+                E-mail Confirmation
               </h1>
             </div>
-            <form onSubmit={sendOtpEmail}>
+            <form onSubmit={checkIsSuccessVerifyEmail}>
               <div className="content__body py-8 border-b">
                 <div className="col-span-full">
                   <label
                     htmlFor="street-address"
                     className="block text-sm font-medium leading-6 text-gray-900"
                   >
-                    Nhập Email
+                    Nhập OTP
                   </label>
                   <div className="mt-2">
                     <input
-                      type="email"
+                      type="number"
                       name="verify-otp"
                       id="street-verify"
                       autoComplete="verify"
-                      placeholder="Nhập email của bạn"
-                      value={email}
-                      minLength={VALIDATION.EMAIL.MIN_LENGTH}
-                      maxLength={VALIDATION.EMAIL.MAX_LENGTH}
-                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="OTP gồm 6 số"
+                      value={codeOTP}
+                      min={VALIDATION.OTP.MIN_VALUE}
+                      max={VALIDATION.OTP.MAX_VALUE}
+                      onChange={(e) => setCodeOTP(e.target.value)}
                       required
                       className="pl-2 pr-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                     />
@@ -105,7 +156,14 @@ export default function forgetPassword({ params }: { params: { id: number } }) {
                   type="submit"
                   className="text-white border-0 py-2 px-8 focus:outline-none mt-4 mb-4 font-medium rounded text-xl bg-green-600 text-center rounded w-full"
                 >
-                  Nhận OTP
+                  Xác thực
+                </button>
+                <button
+                  onClick={resendVerifyOTP}
+                  type="button"
+                  className="text-white border-0 py-2 px-8 focus:outline-none mt-4 mb-4 font-medium rounded text-xl bg-red-600 text-center rounded w-full"
+                >
+                  Gửi lại OTP
                 </button>
                 <p className="text-sm">
                   Namdv Dev lỏ

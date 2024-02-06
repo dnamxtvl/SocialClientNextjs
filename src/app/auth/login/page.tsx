@@ -22,9 +22,9 @@ import VALIDATION from "@/constants/validation";
 import HTTP_CODE from "@/constants/http-code";
 import RESPONSE_CODE from "@/constants/response-code";
 import { DataUserLoginSuccess } from "@/types";
-import Link from 'next/link';
+import Link from "next/link";
 
-export default function Login() {
+export default function login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessages, setErrorMessages] = useState(Array<string>);
@@ -141,7 +141,7 @@ export default function Login() {
       });
 
       setLoading(false);
-      router.push("/email/verify/" + res.data.id);
+      router.push("/auth/verify-email/" + res.data.id);
     } catch (error: any) {
       setOpenModalRegister(true);
       setLoading(false);
@@ -289,7 +289,10 @@ export default function Login() {
             <button className="text-white border-0 py-2 px-8 focus:outline-none font-medium  rounded text-xl bg-blue-600 ">
               Log In
             </button>
-            <Link href={'/auth/forgot-password'} className="text-sm text-blue-500 mt-5 block mx-auto max-w-max">
+            <Link
+              href={"/auth/forgot-password"}
+              className="text-sm text-blue-500 mt-5 block mx-auto max-w-max"
+            >
               Quên mật khẩu?
             </Link>
             <hr className="my-5" />
@@ -316,7 +319,11 @@ export default function Login() {
                 {errorMessagesRegister.length > 0 && (
                   <div className="mb-2 col-span-full">
                     {errorMessagesRegister.map((errorMessage, index) => (
-                      <Alert key={index} severity="error" style={{ whiteSpace: 'pre-line' }}>
+                      <Alert
+                        key={index}
+                        severity="error"
+                        style={{ whiteSpace: "pre-line" }}
+                      >
                         {errorMessage}
                       </Alert>
                     ))}

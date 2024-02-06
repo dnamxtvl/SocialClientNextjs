@@ -9,7 +9,11 @@ import Snackbar from "@mui/material/Snackbar";
 import { Alert } from "@mui/material";
 import VALIDATION from "@/constants/validation";
 
-export default function Register({ params }: { params: { id: number } }) {
+export default function verifyOtpForgotPassword({
+  params,
+}: {
+  params: { id: number };
+}) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const [verifySuccess, setVerifySuccess] = useState(false);
@@ -24,16 +28,14 @@ export default function Register({ params }: { params: { id: number } }) {
     event.preventDefault();
     setLoading(true);
     try {
-      await services.auth.verifyEmail({
+      let res = await services.auth.verifyOtpForgotPassword({
         user_id: params.id,
         verify_code: codeOTP,
       });
 
       setLoading(false);
       setVerifySuccess(true);
-      setTimeout(function () {
-        router.push("/auth/login");
-      }, 1000);
+      router.push("/auth/forgot-password/new-password/" + res.data.id + "?token=" + res.data.token);
     } catch (error: any) {
       setFailVerify(true);
       setErrorMessage(error.message.slice());
@@ -45,7 +47,7 @@ export default function Register({ params }: { params: { id: number } }) {
     setLoading(true);
 
     try {
-      await services.auth.resendVerifyEmail(params.id);
+      await services.auth.resendVerifyEmailForgotPassword(params.id);
       setLoading(false);
       setStatusResendOTP(true);
     } catch (error: any) {
@@ -66,10 +68,7 @@ export default function Register({ params }: { params: { id: number } }) {
         </Alert>
       </Snackbar>
       <Snackbar open={statusResendOTP} autoHideDuration={1000}>
-        <Alert
-          severity="success"
-          sx={{ width: "100%" }}
-        >
+        <Alert severity="success" sx={{ width: "100%" }}>
           {"Hệ thống đã gửi lại OTP!"}
         </Alert>
       </Snackbar>
@@ -168,7 +167,7 @@ export default function Register({ params }: { params: { id: number } }) {
             </div>
             <div className="meta__help">
               <p className="leading-loose">
-              Những câu hỏi hoặc sự liên quan?{" "}
+                Những câu hỏi hoặc sự liên quan?{" "}
                 <a href="#" className="text-green-600 font-bold">
                   help@fakebook.com
                 </a>

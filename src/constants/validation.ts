@@ -9,6 +9,10 @@ const VALIDATION = {
     EMAIL: {
         MIN_LENGTH: 6,
         MAX_LENGTH: 255
+    },
+    PASSWORD: {
+        MIN_LENGTH: 8,
+        MAX_LENGTH: 255
     }
 };
 
