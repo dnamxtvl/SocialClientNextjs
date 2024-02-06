@@ -90,7 +90,7 @@ export default function verifyOtpForgotPassword({
                 </h1>
               </div>
               <h1 className="text-3xl h-48 flex items-center justify-center text-green-500 font-mono">
-                E-mail Confirmation
+                OTP Confirmation
               </h1>
             </div>
             <form onSubmit={checkIsSuccessVerifyEmail}>

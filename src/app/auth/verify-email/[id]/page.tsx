@@ -41,6 +41,7 @@ export default function verifyEmail({ params }: { params: { id: number } }) {
       setopenModalVerifySuccess(true);
     } catch (error: any) {
       setFailVerify(true);
+      setVerifySuccess(false);
       setErrorMessage(error.message.slice());
       setLoading(false);
     }

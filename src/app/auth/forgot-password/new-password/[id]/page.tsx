@@ -48,6 +48,7 @@ export default function setNewPasswordAfterForgot({
       setopenModalChangePasswordSuccess(true);
     } catch (error: any) {
       setFailVerify(true);
+      setVerifySuccess(false);
       setErrorMessage(error.message.slice());
       setLoading(false);
     }
