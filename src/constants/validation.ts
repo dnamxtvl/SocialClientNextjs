@@ -11,12 +11,12 @@ const VALIDATION = {
         MAX_VALUE: 999999
     },
     EMAIL: {
-        MIN_LENGTH: 6,
+        MIN_LENGTH: 8,
         MAX_LENGTH: 255
     },
     PASSWORD: {
         MIN_LENGTH: 8,
-        MAX_LENGTH: 255
+        MAX_LENGTH: 50
     }
 };
 

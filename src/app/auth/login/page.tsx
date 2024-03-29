@@ -23,6 +23,7 @@ import HTTP_CODE from "@/constants/http-code";
 import RESPONSE_CODE from "@/constants/response-code";
 import { DataUserLoginSuccess } from "@/types";
 import Link from "next/link";
+import { useValidator } from "@/helpers/validation";
 
 export default function login() {
   const [email, setEmail] = useState("");
@@ -50,14 +51,21 @@ export default function login() {
   const [verifySuccess, setVerifySuccess] = useState(false);
   const [failVerify, setFailVerify] = useState(false);
   const [errorMessageVerifyOTP, setErrorMessageVerifyOTP] = useState([]);
+  const [validateMessageEmailBeforeSubmit, setValidateMessageEmailBeforeSubmit] = useState("");
+  const [validateMessagePasswordBeforeSubmit, setValidateMessagePasswordBeforeSubmit] = useState("");
   const router = useRouter();
 
   const dispatch = useDispatch();
+  const validateHelper = useValidator();
 
   const login: Function = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setLoading(true);
     try {
+      if (!validateLoginForm()) {
+        return ;
+      }
+
+      setLoading(true);
       let res;
       res = await services.auth.login({
         email: email,
@@ -77,6 +85,48 @@ export default function login() {
       setLoading(false);
       setErrorMessages(error.message);
     }
+  };
+
+  const validateLoginForm: Function = () => {
+    let isPassAllValidate: boolean = true;
+    let validateMessageDefault: string = "";
+    let validateMessagePasswordDefault: string = "";
+    let requiredEmail = validateHelper.required(email, "Email");
+    let isLengthEmail = validateHelper.isLength(
+      email,
+      "Email",
+      VALIDATION.EMAIL.MIN_LENGTH,
+      VALIDATION.EMAIL.MAX_LENGTH
+    );
+    let inValidEmail = validateHelper.isInvalidEmail(email, true);
+    let requiredPassword = validateHelper.required(password, "Mật khẩu");
+    let isLengthPassword = validateHelper.isLength(
+      password,
+      "Mật khẩu",
+      VALIDATION.PASSWORD.MIN_LENGTH,
+      VALIDATION.PASSWORD.MAX_LENGTH
+    );
+
+    validateMessageDefault = requiredEmail === true ? "" : requiredEmail;
+    isPassAllValidate = isPassAllValidate && requiredEmail === true;
+
+    validateMessageDefault = isLengthEmail === true ? "" : isLengthEmail;
+    isPassAllValidate = isPassAllValidate && isLengthEmail === true;
+    
+    validateMessageDefault = (validateMessageDefault.length > 0  ? 
+      validateMessageDefault : (inValidEmail === true ? "" : "Định dạng email sai"));
+    isPassAllValidate = isPassAllValidate && inValidEmail === true;
+
+    validateMessagePasswordDefault = requiredPassword === true ? "" : requiredPassword;
+    isPassAllValidate = isPassAllValidate && requiredPassword === true;
+
+    validateMessagePasswordDefault = isLengthPassword === true ? "" : isLengthPassword;
+    isPassAllValidate = isPassAllValidate && isLengthPassword === true;
+
+    setValidateMessageEmailBeforeSubmit(validateMessageDefault);
+    setValidateMessagePasswordBeforeSubmit(validateMessagePasswordDefault);
+
+    return isPassAllValidate;
   };
 
   const loginSuccessAndRedirectToHome: Function = (
@@ -260,33 +310,42 @@ export default function login() {
             )}
             <div className="relative mb-4">
               <input
-                type="email"
-                id="email"
+                type="text"
                 name="email"
                 placeholder="Email"
-                maxLength={255}
-                minLength={6}
                 className="w-full bg-white rounded border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-lg outline-none  text-gray-700 py-1 px-3 leading-8 transition-colors duration-200 ease-in-out"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required
               />
             </div>
+            {validateMessageEmailBeforeSubmit.length > 0 && (
+              <div className="mb-4">
+                <Alert severity="error">
+                  {validateMessageEmailBeforeSubmit}
+                </Alert>
+              </div>
+            )}
             <div className="relative mb-4">
               <input
                 type="password"
-                id="password"
                 name="password"
                 placeholder="Password"
-                maxLength={255}
-                minLength={8}
                 className="w-full  bg-white rounded border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200  outline-none text-lg text-gray-700 py-1 px-3 leading-8 transition-colors duration-200 ease-in-out"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required
               />
+              {validateMessagePasswordBeforeSubmit.length > 0 && (
+                <div className="mb-4">
+                  <Alert severity="error">
+                    {validateMessagePasswordBeforeSubmit}
+                  </Alert>
+                </div>
+              )}
             </div>
-            <button className="text-white border-0 py-2 px-8 focus:outline-none font-medium  rounded text-xl bg-blue-600 ">
+            <button
+              id="submit-login"
+              className="text-white border-0 py-2 px-8 focus:outline-none font-medium  rounded text-xl bg-blue-600 "
+            >
               Log In
             </button>
             <Link

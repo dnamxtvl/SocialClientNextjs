@@ -306,7 +306,7 @@ export default function Navbar() {
             <li className="w-[49px] h-full flex items-center justify-center">
               <Button
                 aria-label="more"
-                id="long-button"
+                id="long-button-show-right-header-dropdown"
                 aria-controls={open ? "long-menu" : undefined}
                 aria-expanded={open ? "true" : undefined}
                 aria-haspopup="true"
@@ -323,7 +323,7 @@ export default function Navbar() {
               <Menu
                 id="long-menu"
                 MenuListProps={{
-                  "aria-labelledby": "long-button",
+                  "aria-labelledby": "long-button-show-right-header-dropdown",
                 }}
                 anchorEl={anchorEl}
                 open={open}
@@ -341,7 +341,7 @@ export default function Navbar() {
                     <Link href={option.link}>{option.label}</Link>
                   </MenuItem>
                 ))}
-                <MenuItem key="logout" onClick={logout}>
+                <MenuItem key="logout" onClick={logout} id="button-logout">
                   <LogoutIcon />
                   Đăng xuất
                 </MenuItem>
