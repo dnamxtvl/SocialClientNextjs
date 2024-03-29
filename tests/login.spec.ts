@@ -89,7 +89,7 @@ test('Macth email and password and logout success', async ({ page }) => {
     await page.fill('input[name="password"]', '12345678');
     await page.click('button[id="submit-login"]');
     await page.waitForResponse('http://user_service.local/api/login');
-    await page.waitForURL("http://localhost:3002", {timeout: 60000 , waitUntil:"domcontentloaded"});
+    await page.waitForURL("http://localhost:3002", { timeout: 60000 , waitUntil:"domcontentloaded" });
     await page.screenshot({ path: './tests/screenshots/login/screenshot_email_wrong_or_password_wrong.png', fullPage: true });
 
     await page.click('button[id="long-button-show-right-header-dropdown"]');
