@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { chromium } from '@playwright/test';
+import { chromium, firefox } from '@playwright/test';
 
 test('Email required and password not required', async ({ page }) => {
     await page.goto('http://localhost:3002/auth/login');
@@ -80,8 +80,10 @@ test('Wrong email or wrong password', async ({ page }) => {
 });
 
 test('Macth email and password and logout success', async ({ page }) => {
-    const browser = await chromium.launch();
-    const context = await browser.newContext();
+    const chromiumBrowser = await chromium.launch();
+    const chromiumContext = await chromiumBrowser.newContext();
+    const firefoxBrowser = await firefox.launch();
+    const firefoxContext = await firefoxBrowser.newContext();
     await page.goto('http://localhost:3002/auth/login');
     await page.fill('input[name="email"]', 'ahihi@gmail.com');
     await page.fill('input[name="password"]', '12345678');
@@ -95,7 +97,9 @@ test('Macth email and password and logout success', async ({ page }) => {
     const responsePromise = await page.waitForResponse('http://user_service.local/api/logout');
     expect(responsePromise.ok()).toBe(true);
 
-    await context.close();
-    await browser.close();
+    await chromiumContext.close();
+    await chromiumBrowser.close();
+    await firefoxBrowser.close();
+    await firefoxContext.close();
     await page.close();
 });
