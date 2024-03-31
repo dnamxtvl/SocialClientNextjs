@@ -23,7 +23,7 @@ export default function Home() {
             <Footer />
           </div>
           <div className="w-full lg:pl-14 lg:ml-24 lg:pr-36 lg:w-1/2">
-            <RightSideBar />
+            
           </div>
           <div className="hidden lg:inline w-full md:w-1/2 lg:w-1/6">
             <RightSideBar />
