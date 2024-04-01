@@ -1,13 +1,130 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { SideBarChat } from "@/components/layouts/Messenger/SideBarChat";
-import { HeaderChat } from "@/components/layouts/Messenger/HeaderChat";
-import { BodyChat } from "@/components/layouts/Messenger/BodyChat";
+import { SideBarChat } from "@/components/layouts/Messages/SideBarChat";
+import { HeaderChat } from "@/components/layouts/Messages/HeaderChat";
+import { ListMessageDetail } from "@/types";
+import { ItemMessagePartner } from "@/components/layouts/Messages/ItemMessagePartner";
+import { ItemMessageMe } from "@/components/layouts/Messages/ItemMessageMe";
+import moment from "moment";
 
-export default function Chat() {
+export default function MessageDetail() {
+    const [listMessages, setListMessages] = useState(Array<ListMessageDetail>);
+    const getListMessageDetail: Function = async () => {
+        setListMessages([
+            {
+                profile: {
+                    id: 1,
+                    first_name: "John",
+                    last_name: "Doe",
+                    avatar: "https://www.gstatic.com/webp/gallery/1.jpg"
+                },
+                listMessages: {
+                    messages: [
+                        {
+                            id: 1,
+                            type: 0,
+                            content: "Hello World",
+                            userlatestSeen: null,
+                            createdAt: "2022-12-10 9:20:10",
+                        },
+                        {
+                            id: 2,
+                            type: 1,
+                            content: "https://www.gstatic.com/webp/gallery/1.jpg",
+                            userlatestSeen: null,
+                            createdAt: "2022-10-10 10:15:10",
+                        },
+                        {
+                            id: 3,
+                            type: 0,
+                            content: "Shall we go for Hiking this weekend?",
+                            userlatestSeen: null,
+                            createdAt: "2022-10-10 10:20:10",
+                        }
+                    ],
+                    firstOfAvgFourHour: true
+                }
+            },
+            {
+                profile: {
+                    id: 2,
+                    first_name: "John",
+                    last_name: "Doe",
+                    avatar: "https://www.gstatic.com/webp/gallery/1.jpg"
+                },
+                listMessages: {
+                    messages: [
+                        {
+                            id: 1,
+                            type: 0,
+                            content: "Hello World",
+                            userlatestSeen: null,
+                            createdAt: "2023-08-19 20:15:10",
+                        },
+                        {
+                            id: 2,
+                            type: 1,
+                            content: "https://www.gstatic.com/webp/gallery/1.jpg",
+                            createdAt: "2022-10-10 10:15:10",
+                        },
+                        {
+                            id: 3,
+                            type: 0,
+                            content: "Shall we go for Hiking this weekend?",
+                            userlatestSeen: null,
+                            createdAt: "2022-12-10 9:20:10",
+                        }
+                    ],
+                    firstOfAvgFourHour: true
+                }
+            },
+            {
+                profile: {
+                    id: 1,
+                    first_name: "John",
+                    last_name: "Doe",
+                    avatar: "https://www.gstatic.com/webp/gallery/1.jpg"
+                },
+                listMessages: {
+                    messages: [
+                        {
+                            id: 1,
+                            type: 0,
+                            content: "Hello World",
+                            userlatestSeen: null,
+                            createdAt: "2023-08-19 20:15:10",
+                        },
+                        {
+                            id: 2,
+                            type: 1,
+                            content: "https://www.gstatic.com/webp/gallery/1.jpg",
+                            userlatestSeen: null,
+                            createdAt: "2023-08-19 20:15:10",
+                        },
+                        {
+                            id: 3,
+                            type: 0,
+                            content: "Shall we go for Hiking this weekend?",
+                            userlatestSeen: [
+                                {
+                                    id: 1,
+                                    first_name: "John",
+                                    last_name: "Doe",
+                                    avatar: "https://www.gstatic.com/webp/gallery/1.jpg"
+                                }
+                            ],
+                            createdAt: "2022-10-10 10:20:10",
+                        }
+                    ],
+                    firstOfAvgFourHour: false
+                },
+            }
+        ])
+    }
 
     useEffect(() => {
+        getListMessageDetail();
     }, []);
     return (
         <main className="mb-4">
@@ -22,7 +139,24 @@ export default function Chat() {
                         <SideBarChat />
                         <section className="flex flex-col flex-auto border-l border-gray-800">
                             <HeaderChat />
-                            <BodyChat />
+                            <div className="chat-body p-4 flex-1 overflow-y-scroll">
+                            {listMessages.length > 0 && (
+                                listMessages.map((item, index) => {
+                                    return (
+                                        <div key={index}>
+                                            {item.listMessages.firstOfAvgFourHour && (
+                                                <p className="p-4 text-center text-sm text-gray-500">{moment(item.listMessages.messages[0].createdAt, "YYYY-MM-DD HH:mm:ss").format("DD MMM YYYY, HH:mm")}</p>
+                                            )}
+                                            {item.profile.id !== 2 ? (
+                                                <ItemMessagePartner key={index} profile={item.profile} messagePartners={item.listMessages.messages} />
+                                            ) : (
+                                                <ItemMessageMe key={index} profile={item.profile} messagesMe={item.listMessages.messages} />
+                                            )}
+                                        </div>
+                                    );
+                                })
+                            )}
+                            </div>
                             <div className="chat-footer flex-none">
                                 <div className="flex flex-row items-center p-4">
                                     <button
