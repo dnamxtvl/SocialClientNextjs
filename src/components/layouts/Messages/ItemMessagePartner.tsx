@@ -2,7 +2,7 @@ import { ProfileMessagePartner, ItemMessage } from "@/types";
 import { TYPE } from "@/constants/message";
 import ReplyIcon from '@mui/icons-material/Reply';
 import AddReactionIcon from '@mui/icons-material/AddReaction';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 
 export function ItemMessagePartner({ profile, messagePartners }: { profile: ProfileMessagePartner, messagePartners: Array<ItemMessage> }) {
     return (
@@ -41,18 +41,17 @@ export function ItemMessagePartner({ profile, messagePartners }: { profile: Prof
                         <button
                             type="button"
                             className="hidden group-hover:block flex flex-shrink-0 focus:outline-none mx-2 block rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-700 bg-gray-800 w-8 h-8 p-2"
-                        ><MoreVertIcon />
+                        ><MoreHorizIcon className="pr-[7px] pb-1"/>
                         </button>
                         <button
                             type="button"
                             className="hidden group-hover:block flex flex-shrink-0 focus:outline-none mx-2 block rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-700 bg-gray-800 w-8 h-8 p-2"
-                        ><ReplyIcon />
-                            
+                        ><ReplyIcon className="pr-[7px] pb-1"/>
                         </button>
                         <button
                             type="button"
                             className="hidden group-hover:block flex flex-shrink-0 focus:outline-none mx-2 block rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-700 bg-gray-800 w-8 h-8 p-2"
-                        ><AddReactionIcon />
+                        ><AddReactionIcon className="pr-[7px] pb-1"/>
                         </button>
                     </div>
                 ))

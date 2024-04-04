@@ -28,7 +28,8 @@ export interface ItemMessage {
     id: number,
     type: number,
     content: string,
-    userlatestSeen?: Array<ProfileMessagePartner> | null,
+    userlatestSeen?: Array<ProfileMessagePartner> | ProfileMessagePartner | null,
+    userSender?: ProfileMessagePartner | null,
     createdAt: string,
 }
 
@@ -38,4 +39,10 @@ export interface ListMessageDetail {
         messages: Array<ItemMessage>,
         firstOfAvgFourHour: boolean
     }
+}
+
+export interface ItemConversation {
+    avatar: string | Array<string> | null,
+    name: string,
+    message: ItemMessage | null
 }
