@@ -10,13 +10,13 @@ import { Alert } from "@mui/material";
 import VALIDATION from "@/constants/validation";
 
 export default function forgetPassword({ params }: { params: { id: number } }) {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const router = useRouter();
-  const [verifySuccess, setVerifySuccess] = useState(false);
-  const [errorMessage, setErrorMessage] = useState([]);
-  const [email, setEmail] = useState("");
-  const [failVerify, setFailVerify] = useState(false);
-  const [statusResendOTP, setStatusResendOTP] = useState(false);
+  const [verifySuccess, setVerifySuccess] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState(Array<string>);
+  const [email, setEmail] = useState<string>("");
+  const [failVerify, setFailVerify] = useState<boolean>(false);
+  const [statusResendOTP, setStatusResendOTP] = useState<boolean>(false);
 
   const sendOtpEmail: Function = async (
     event: React.FormEvent<HTMLFormElement>

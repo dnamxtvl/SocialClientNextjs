@@ -23,12 +23,12 @@ export default function setNewPasswordAfterForgot({
 }) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const [verifySuccess, setVerifySuccess] = useState(false);
-  const [errorMessage, setErrorMessage] = useState([]);
-  const [newPassword, setNewPassword] = useState("");
-  const [failVerify, setFailVerify] = useState(false);
+  const [verifySuccess, setVerifySuccess] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState(Array<string>);
+  const [newPassword, setNewPassword] = useState<string>("");
+  const [failVerify, setFailVerify] = useState<boolean>(false);
   const [openModalChangePasswordSuccess, setopenModalChangePasswordSuccess] =
-    useState(false);
+    useState<boolean>(false);
   const searchParams = useSearchParams();
 
   const setNewPasswordAfterForgot: Function = async (
