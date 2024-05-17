@@ -13,9 +13,8 @@ export const TYPE = {
 
 export const STATUS = {
     UNREAD: 0,
-    READ: 1,
-    SEEN: 2,
-    DELIVERED: 3,
+    SEEN: 1,
+    DELIVERED: 2,
 }
 
 export const TEXT_FOR_LATEST_MESSAGE_CONTENT = {

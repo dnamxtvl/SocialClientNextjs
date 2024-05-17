@@ -1,3 +1,5 @@
+import { Url } from "url";
+
 export interface DataUserLoginSuccess {
     data: {
         user: {
@@ -42,7 +44,7 @@ export interface ListMessageDetail {
 }
 
 export interface ItemConversation {
-    avatar: string | Array<string> | null,
+    avatar: Url | Array<Url> | null,
     name: string,
     message: ItemMessage | null
 }
