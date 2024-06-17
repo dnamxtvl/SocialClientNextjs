@@ -4,7 +4,7 @@ import { ItemMessage } from "@/types";
 import { calculateTimeAgo } from "@/helpers/application";
 import { MAX_MESSAGE_LENGTH_DISPLAY_LIST_CONTENT } from "@/constants/message";
 
-export function ItemConversationCp({ message, avatar, name }: { message: ItemMessage, avatar: string | Array<string> | null, name: string }) {
+export function ItemConversationCp({ message, avatar, name, noUnredMessage }: { message: ItemMessage, avatar: string | Array<string> | null, name: string, noUnredMessage: number }) {
     return (
         <div className="flex justify-between items-center p-3 hover:bg-gray-800 rounded-lg relative">
             {avatar == null && (
@@ -40,16 +40,16 @@ export function ItemConversationCp({ message, avatar, name }: { message: ItemMes
                 </div>
             )}
             <div className="flex-auto min-w-0 ml-4 mr-6 hidden md:block group-hover:block">
-                <p className={`${message.userlatestSeen === null ? 'font-bold' : ''}`}>{name}</p>
-                <div className={`flex items-center text-sm ${message.userlatestSeen === null ? 'font-bold' : ''}`}>
+                <p className={`${noUnredMessage > 0 ? 'font-bold' : ''}`}>{name}</p>
+                <div className={`flex items-center text-sm ${noUnredMessage > 0 ? 'font-bold' : ''}`}>
                     <div className="min-w-1">
-                        <p className="truncate">{message.type == TYPE.TEXT ? (message.content.length > MAX_MESSAGE_LENGTH_DISPLAY_LIST_CONTENT ? message.content.substring(0, MAX_MESSAGE_LENGTH_DISPLAY_LIST_CONTENT) + '...' : message.content) : (TEXT_FOR_LATEST_MESSAGE_CONTENT.hasOwnProperty(message.type) ? TEXT_FOR_LATEST_MESSAGE_CONTENT[message.type] : '')}</p>
+                        <p className="truncate">{message.type == TYPE.TEXT || message.type == TYPE.NOTIFY ? (message.content.length > MAX_MESSAGE_LENGTH_DISPLAY_LIST_CONTENT ? message.content.substring(0, MAX_MESSAGE_LENGTH_DISPLAY_LIST_CONTENT) + '...' : message.content) : (TEXT_FOR_LATEST_MESSAGE_CONTENT.hasOwnProperty(message.type) ? TEXT_FOR_LATEST_MESSAGE_CONTENT[message.type] : '')}</p>
                     </div>
                     <p className="ml-2 whitespace-no-wrap">{calculateTimeAgo(message.createdAt)}</p>
                 </div>
             </div>
             {
-                message.userlatestSeen === null && (
+                noUnredMessage > 0 && (
                     <div className="bg-blue-700 w-3 h-3 rounded-full flex flex-shrink-0 hidden md:block group-hover:block" />       
                 )
             }

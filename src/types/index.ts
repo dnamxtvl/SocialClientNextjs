@@ -46,5 +46,6 @@ export interface ListMessageDetail {
 export interface ItemConversation {
     avatar: Url | Array<Url> | null,
     name: string,
+    noUnredMessage: number,
     message: ItemMessage | null
 }

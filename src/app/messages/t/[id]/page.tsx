@@ -13,9 +13,63 @@ import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import KeyboardVoiceIcon from '@mui/icons-material/KeyboardVoice';
 import InsertEmoticonIcon from '@mui/icons-material/InsertEmoticon';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
+import services from "@/services/Index";
+import HTTP_CODE from "@/constants/http-code";
+import { useRouter } from "next/navigation";
+import { useDispatch } from "react-redux";
+import { deleteCookie } from "cookies-next";
+import { clearToken } from "@/redux/slices/AuthSlice";
+import { Alert, Snackbar } from "@mui/material";
+import { CHAT_SERVICE_HOST } from "@/environments";
 
 export default function MessageDetail() {
-    const [listMessages, setListMessages] = useState(Array<ListMessageDetail>);
+    const [listMessages, setListMessages] = useState<Array<ListMessageDetail>>([]);
+    const [listConversations, setListConversations] = useState([]);
+    const [pageConversation, setPageConversation] = useState<number>(1);
+    const [errorMessage, setErrorMessage] = useState<string>('');
+    const router = useRouter();
+    const dispatch = useDispatch();
+    const removeToken = () => {
+      dispatch(clearToken());
+      deleteCookie("isLogined");
+      deleteCookie("token");
+    };
+    
+
+    const getListConversation = async () => {
+        try {
+            let res = await services.conversation.listConversation(pageConversation);
+            const dataConversation = res.data.map(
+                (item: any) => {
+                    return {
+                        id: item.conversation.id,
+                        name: item.conversation.name,
+                        avatar: CHAT_SERVICE_HOST + item.conversation.avatar,
+                        noUnredMessage: item.noUnredMessage,
+                        message: {
+                            id: item.latestMessage.id,
+                            content: item.latestMessage.content,
+                            type: item.latestMessage.type,
+                            userlatestSeen: null,
+                            createdAt: item.latestMessage.createdAt,
+                        }
+                    }
+                }
+            );
+            console.log(dataConversation);
+            setListConversations(dataConversation);
+        } catch (error: any) {
+            if (error.code == HTTP_CODE.UNAUTHORIZED) {
+              setErrorMessage("Phiên đăng nhập đã hết hạn!");
+              removeToken();
+              setTimeout(function () {
+                router.push("/auth/login");
+              }, 1000);
+            }
+            setErrorMessage(error.message.slice());
+        }
+    }
+
     const getListMessageDetail: Function = async () => {
         setListMessages([
             {
@@ -130,10 +184,19 @@ export default function MessageDetail() {
     }
 
     useEffect(() => {
+        getListConversation();
         getListMessageDetail();
     }, []);
     return (
         <main className="mb-4">
+            <Snackbar
+                open={errorMessage.length > 0}
+                autoHideDuration={2000}
+            >
+                <Alert severity="error" sx={{ width: "100%" }}>
+                {errorMessage}
+                </Alert>
+            </Snackbar>
             <div className="h-screen w-full flex antialiased text-gray-200 bg-gray-900 overflow-hidden">
                 <div className="flex-1 flex flex-col">
                     <div className="border-b-2 border-gray-800 p-2 flex flex-row z-20">
@@ -142,7 +205,9 @@ export default function MessageDetail() {
                         <div className="bg-green-500 w-3 h-3 rounded-full mr-2" />
                     </div>
                     <main className="flex-grow flex flex-row min-h-0">
-                        <SideBarChat />
+                    { listConversations.length > 0 &&
+                        <SideBarChat listConversations={listConversations} />
+                    }
                         <section className="flex flex-col flex-auto border-l border-gray-800">
                             <HeaderChat />
                             <div className="chat-body p-4 flex-1 overflow-y-scroll">

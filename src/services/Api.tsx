@@ -1,13 +1,11 @@
-import HTTP_CODE from "@/constants/http-code";
 import VALIDATION from "@/constants/validation";
 import { store } from "@/redux/store";
-import { redirect } from 'next/navigation';
 import { ErrorResponse } from "@/types";
 
 const headers = {
   "content-type": "application/json",
   "accept": "application/json",
-  "Authorization": ""
+  "Authorization": "",
 };
 
 async function handleResponse(p_response: any) {
@@ -38,7 +36,7 @@ async function handleResponse(p_response: any) {
       errors = errorMessages;
     } else {
       errors = [json.message];
-      codeEnumError = json.errors.code;
+      codeEnumError = json.errors?.code ?? 0;
     }
 
     let error: ErrorResponse = {
@@ -64,14 +62,17 @@ const get: Function = (
       url.searchParams.append(key, params[key]);
     });
   }
-  const newHeaders: any = headers;
-
+  
+  let newHeaders: any = headers;
+  newHeaders.Authorization = `Bearer ${store.getState().auth.token}`;
   if (noCache) {
     newHeaders["cache-control"] = "no-cache";
   }
 
   return fetch(url, {
     headers: newHeaders,
+    method: "GET",
+    credentials: "same-origin",
   }).then(async (p_response) => await handleResponse(p_response)).catch((error) => {
     let errorResponse: ErrorResponse = {
       code: error.code ?? 500,

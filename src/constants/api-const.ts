@@ -10,7 +10,11 @@ const API_CONST = {
         VERIFY_OTP_FORGOT_PASSWORD: 'forgot-password/verify-otp',
         RESEND_VERIFY_EMAIL_FORGOT_PASSWORD: 'forgot-password/resend-otp/',
         SET_NEW_PASSWORD_AFTER_FORGOT: 'forgot-password/set-new-password',
+        CHECK_IS_LOGIN: 'check-login',
     },
+    CONVERSATION: {
+        LIST: 'chat/user/conversation/list/',
+    }
 };
 
 export default API_CONST;

@@ -18,15 +18,15 @@ export default function Home() {
       <div className="p-8 text-grey-darkest">
         <div className="mb-8 p-2 mt-8 w-full flex justify-between flex-wrap">
           <div className="w-full md:w-1/2 lg:w-1/6">
-            <SideBar />
+            {/* <SideBar />
             <ShortCut />
-            <Footer />
+            <Footer /> */}
           </div>
           <div className="w-full lg:pl-14 lg:ml-24 lg:pr-36 lg:w-1/2">
             
           </div>
           <div className="hidden lg:inline w-full md:w-1/2 lg:w-1/6">
-            <RightSideBar />
+            {/* <RightSideBar /> */}
           </div>
         </div>
       </div>

@@ -10,5 +10,5 @@ export function middleware(req: NextRequest, event: NextFetchEvent) {
 }
 
 export const config = {
-    matcher: ['/'],
+    matcher: ['/', '/messages/t/:path*'],
 }

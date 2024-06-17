@@ -8,7 +8,8 @@ export const TYPE = {
     EMOJI: 6,
     IMAGES: 7,
     FILES: 8,
-    VIDEOS: 9
+    VIDEOS: 9,
+    NOTIFY: 10
 }
 
 export const STATUS = {

@@ -20,3 +20,5 @@ export const SOCIAL_URL = {
 
 export const WEBSITE_LINK = "http://localhost:3000";
 export const USER_SERVICE_API_HOST = "http://user_service.local/api/";
+export const CHAT_SERVICE_API_HOST = "http://localhost:3003/api/";
+export const CHAT_SERVICE_HOST = "http://localhost:3003/";

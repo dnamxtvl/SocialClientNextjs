@@ -66,8 +66,7 @@ export default function login() {
       }
 
       setLoading(true);
-      let res;
-      res = await services.auth.login({
+      let res = await services.auth.login({
         email: email,
         password: password,
         remember_me: false,
@@ -132,6 +131,7 @@ export default function login() {
   const loginSuccessAndRedirectToHome: Function = (
     res: DataUserLoginSuccess
   ) => {
+    console.log(res.data.token);
     dispatch(setToken(res.data.token));
     setCookie("isLogined", true, {
       expires: new Date(new Date().getTime() + EXPIRES_COOKIE_DAY),

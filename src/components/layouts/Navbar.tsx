@@ -24,8 +24,9 @@ import { deleteCookie } from "cookies-next";
 export default function Navbar() {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open: boolean = Boolean(anchorEl);
-  const [loading, setLoading] = useState(false);
-  const [logoutSuccess, setLogoutSucess] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [logoutSuccess, setLogoutSucess] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string>('Đã xảy ra lỗi!');
   const handleClickMenuNavbar = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
@@ -60,8 +61,7 @@ export default function Navbar() {
   const logout = async () => {
     setLoading(true);
     try {
-      let res;
-      res = await services.auth.logout();
+      await services.auth.logout();
       removeToken();
       setLoading(false);
       router.push("/auth/login");
@@ -69,10 +69,11 @@ export default function Navbar() {
       setLoading(false);
       setLogoutSucess(true);
       if (error.code == HTTP_CODE.UNAUTHORIZED) {
+        setErrorMessage("Phiên đăng nhập đã hết hạn!");
         removeToken();
         setTimeout(function () {
           router.push("/auth/login");
-        }, 2000);
+        }, 1000);
       }
     }
   };
@@ -95,7 +96,7 @@ export default function Navbar() {
         onClose={handleCloseNotification}
       >
         <Alert severity="error" sx={{ width: "100%" }}>
-          Đã xảy ra lỗi!
+          {errorMessage}
         </Alert>
       </Snackbar>
       {loading && (
