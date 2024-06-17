@@ -27,7 +27,8 @@ export const TEXT_FOR_LATEST_MESSAGE_CONTENT = {
     6: 'đã bày tỏ cảm xúc',
     7: 'đã gửi một số ảnh',
     8: 'đã gửi một số file',
-    9: 'đã gửi một số video'
+    9: 'đã gửi một số video',
+    10: 'Nhóm mới!'
 }
 
-export const MAX_MESSAGE_LENGTH_DISPLAY_LIST_CONTENT = 17
+export const MAX_MESSAGE_LENGTH_DISPLAY_LIST_CONTENT = 25

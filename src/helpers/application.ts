@@ -17,33 +17,33 @@ export const calculateTimeAgo = (timestamp: string) => {
     
     const diffYears = currentTime.diff(targetTime, 'years');
     if (diffYears > 0) {
-        return `${diffYears} năm trước`;
+        return `${diffYears} năm`;
     }
     
     const diffMonths = currentTime.diff(targetTime, 'months');
     if (diffMonths > 0) {
-        return `${diffMonths} tháng trước`;
+        return `${diffMonths} tháng`;
     }
 
     const diffWeeks = currentTime.diff(targetTime, 'weeks');
     if (diffWeeks > 0) {
-        return `${diffWeeks} tuần trước`;
+        return `${diffWeeks} tuần`;
     }
     
     const diffDays = currentTime.diff(targetTime, 'days');
     if (diffDays > 0) {
-        return `${diffDays} ngày trước`;
+        return `${diffDays} ngày`;
     }
     
     const diffHours = currentTime.diff(targetTime, 'hours');
     if (diffHours > 0) {
-        return `${diffHours} giờ trước`;
+        return `${diffHours} giờ`;
     }
     
     const diffMinutes = currentTime.diff(targetTime, 'minutes');
 
     if (diffMinutes > 0) {
-        return `${diffMinutes} phút trước`;
+        return `${diffMinutes} phút`;
     }
 
     return `now`;

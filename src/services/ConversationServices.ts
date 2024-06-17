@@ -7,4 +7,9 @@ export default class ConversationService {
         let route = CHAT_SERVICE_API_HOST + API_CONST.CONVERSATION.LIST + '?page=' + page;
         return await api.get(route);
     }
+
+    viewConversation : Function = async (id: string) => {
+        let route = CHAT_SERVICE_API_HOST + API_CONST.CONVERSATION.VIEW + id;
+        return await api.get(route);
+    }
 }

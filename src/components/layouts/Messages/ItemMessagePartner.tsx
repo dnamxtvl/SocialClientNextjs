@@ -3,37 +3,39 @@ import { TYPE } from "@/constants/message";
 import ReplyIcon from '@mui/icons-material/Reply';
 import AddReactionIcon from '@mui/icons-material/AddReaction';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import { CHAT_SERVICE_HOST } from "@/environments";
 
-export function ItemMessagePartner({ profile, messagePartners }: { profile: ProfileMessagePartner, messagePartners: Array<ItemMessage> }) {
+export function ItemMessagePartner({ profile, messagePartners }: { profile: ProfileMessagePartner, messagePartners: ItemMessage }) {
     return (
         <div className="flex flex-row justify-start mt-4">
             <div className="messages text-sm text-gray-700 grid grid-flow-row gap-2">
-            {messagePartners.length > 0 && (
-                messagePartners.map((item, index) => (
-                    <div className="flex items-center group" key={index}>
-                        {index == messagePartners.length - 1 && (
-                            <div className="w-8 h-8 relative flex flex-shrink-0 mr-4">
-                            <img
+                    <div className="flex items-center group"> 
+                            {profile.avatar == null && (
+                                <div className="w-10 h-10 relative flex items-center justify-center bg-violet-700 rounded-full">
+                                    <p className="text-lg text-center text-white">{profile.firstName[0]}</p>
+                                </div>
+                            )}
+                            {profile.avatar != null && (
+                                <div className="w-10 h-10 relative flex  bg-violet-700 rounded-full">
+                                <img
                                 className="shadow-md rounded-full w-full h-full object-cover"
-                                src={profile.avatar}
+                                src={ CHAT_SERVICE_HOST + profile.avatar}
                                 alt=""
                                 />
-                            </div>
-                        )}
-                        {index < messagePartners.length - 1 && (
-                            <div className="w-8 h-8 relative flex flex-shrink-0 mr-4"></div>
-                        )}
-                        {item.type == TYPE.TEXT && (
-                            <p className="px-6 py-3 rounded-t-full rounded-r-full bg-gray-800 max-w-xs lg:max-w-md text-gray-200">
-                                {item.content}
+                                </div>
+                            )
+                            }
+                        {messagePartners.type == TYPE.TEXT && (
+                            <p className="px-6 ml-2 py-3 rounded-t-full rounded-r-full bg-gray-800 max-w-xs lg:max-w-md text-gray-200">
+                                {messagePartners.content}
                             </p>
                         )}
-                        {item.type == TYPE.IMAGE && (
+                        {messagePartners.type == TYPE.IMAGE && (
                             <a className="block w-64 h-64 relative flex flex-shrink-0 max-w-xs lg:max-w-md"
-                            href={item.content}>
+                            href={messagePartners.content}>
                                 <img
                                     className="absolute shadow-md w-full h-full rounded-l-lg object-cover"
-                                    src={item.content}
+                                    src={messagePartners.content}
                                     alt="hiking"
                                 />
                             </a>
@@ -54,12 +56,9 @@ export function ItemMessagePartner({ profile, messagePartners }: { profile: Prof
                         ><AddReactionIcon className="pr-[7px] pb-1"/>
                         </button>
                     </div>
-                ))
-            )}
             </div>
-            {messagePartners.length > 0 && (
-                messagePartners.map((item, index) => {
-                    if (item.userlatestSeen) {
+            
+                    {/* if (item.userlatestSeen) {
                         return <div key={index} className="w-5 h-5 relative flex flex-shrink-0 mr-0 ml-auto mt-auto">
                                     <img
                                         className="shadow-md rounded-full w-full h-full object-cover"
@@ -67,9 +66,8 @@ export function ItemMessagePartner({ profile, messagePartners }: { profile: Prof
                                         alt=""
                                     />
                                 </div>
-                    }
-                })
-            )}
+                    } */}
+                
         </div>
     );
 }

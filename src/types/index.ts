@@ -21,8 +21,8 @@ export interface ErrorResponse {
 
 export interface ProfileMessagePartner {
     id: number,
-    first_name: string,
-    last_name: string,
+    firstName: string,
+    lastName: string,
     avatar: string
 }
 
@@ -30,6 +30,7 @@ export interface ItemMessage {
     id: number,
     type: number,
     content: string,
+    firstOfAvgTime: boolean,
     userlatestSeen?: Array<ProfileMessagePartner> | ProfileMessagePartner | null,
     userSender?: ProfileMessagePartner | null,
     createdAt: string,

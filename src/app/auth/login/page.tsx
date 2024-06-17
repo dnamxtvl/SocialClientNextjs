@@ -131,7 +131,6 @@ export default function login() {
   const loginSuccessAndRedirectToHome: Function = (
     res: DataUserLoginSuccess
   ) => {
-    console.log(res.data.token);
     dispatch(setToken(res.data.token));
     setCookie("isLogined", true, {
       expires: new Date(new Date().getTime() + EXPIRES_COOKIE_DAY),
@@ -146,6 +145,13 @@ export default function login() {
         avatar: res.data.user.avatar,
       })
     );
+    setCookie("userProfile", JSON.stringify({
+      id: res.data.user.id,
+      userName: res.data.user.first_name + " " + res.data.user.last_name,
+      avatar: res.data.user.avatar,
+    }), {
+      expires: new Date(new Date().getTime() + EXPIRES_COOKIE_DAY)
+    });
 
     setLoading(false);
     setLoginSucess(true);

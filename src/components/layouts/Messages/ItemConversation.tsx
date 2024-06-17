@@ -8,10 +8,10 @@ export function ItemConversationCp({ message, avatar, name, noUnredMessage }: { 
     return (
         <div className="flex justify-between items-center p-3 hover:bg-gray-800 rounded-lg relative">
             {avatar == null && (
-                <div className="w-16 h-16 relative flex flex-shrink-0"></div>
+                <div className="w-12 h-12 relative flex flex-shrink-0"></div>
             )}
             {typeof avatar == "string" && (
-                <div className="w-16 h-16 relative flex flex-shrink-0">
+                <div className="w-12 h-12 relative flex flex-shrink-0">
                     <img
                         className="shadow-md rounded-full w-full h-full object-cover"
                         src={avatar}
@@ -23,7 +23,7 @@ export function ItemConversationCp({ message, avatar, name, noUnredMessage }: { 
                 </div>  
             )}
             {Array.isArray(avatar) && (
-                <div className="w-16 h-16 relative flex flex-shrink-0">
+                <div className="w-12 h-12 relative flex flex-shrink-0">
                     <img
                         className="shadow-md rounded-full w-10 h-10 object-cover absolute ml-6"
                         src={avatar[0]}
@@ -41,7 +41,7 @@ export function ItemConversationCp({ message, avatar, name, noUnredMessage }: { 
             )}
             <div className="flex-auto min-w-0 ml-4 mr-6 hidden md:block group-hover:block">
                 <p className={`${noUnredMessage > 0 ? 'font-bold' : ''}`}>{name}</p>
-                <div className={`flex items-center text-sm ${noUnredMessage > 0 ? 'font-bold' : ''}`}>
+                <div className={`flex items-center justify-start text-sm ${noUnredMessage > 0 ? 'font-bold' : ''}`}>
                     <div className="min-w-1">
                         <p className="truncate">{message.type == TYPE.TEXT || message.type == TYPE.NOTIFY ? (message.content.length > MAX_MESSAGE_LENGTH_DISPLAY_LIST_CONTENT ? message.content.substring(0, MAX_MESSAGE_LENGTH_DISPLAY_LIST_CONTENT) + '...' : message.content) : (TEXT_FOR_LATEST_MESSAGE_CONTENT.hasOwnProperty(message.type) ? TEXT_FOR_LATEST_MESSAGE_CONTENT[message.type] : '')}</p>
                     </div>
