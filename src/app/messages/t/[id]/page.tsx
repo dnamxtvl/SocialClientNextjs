@@ -18,7 +18,7 @@ import HTTP_CODE from "@/constants/http-code";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { deleteCookie } from "cookies-next";
-import { clearToken } from "@/redux/slices/AuthSlice";
+import { clearToken, setTokenExpriredToast } from "@/redux/slices/AuthSlice";
 import { Alert, Snackbar } from "@mui/material";
 import { CHAT_SERVICE_HOST } from "@/environments";
 import { store } from "@/redux/store";
@@ -62,132 +62,13 @@ export default function MessageDetail({ params }: { params: { id: number } }) {
       });
       setListConversations(conversationData);
     } catch (error: any) {
-      if (error.code == HTTP_CODE.UNAUTHORIZED) {
-        setErrorMessage("Phiên đăng nhập đã hết hạn!");
-        removeToken();
-        setTimeout(function () {
-          router.push("/auth/login");
-        }, 1000);
-      }
       setErrorMessage(error.message.slice());
     }
   };
 
   const getListMessageDetail: Function = async () => {
-    const test = [
-        {
-          profile: {
-            id: 1,
-            first_name: "John",
-            last_name: "Doe",
-            avatar: "https://www.gstatic.com/webp/gallery/1.jpg",
-          },
-          listMessages: {
-            messages: [
-              {
-                id: 1,
-                type: 0,
-                content: "Hello World",
-                userlatestSeen: null,
-                createdAt: "2022-12-10 9:20:10",
-              },
-              {
-                id: 2,
-                type: 1,
-                content: "https://www.gstatic.com/webp/gallery/1.jpg",
-                userlatestSeen: null,
-                createdAt: "2022-10-10 10:15:10",
-              },
-              {
-                id: 3,
-                type: 0,
-                content: "Shall we go for Hiking this weekend?",
-                userlatestSeen: null,
-                createdAt: "2022-10-10 10:20:10",
-              },
-            ],
-            firstOfAvgFourHour: true,
-          },
-        },
-        {
-          profile: {
-            id: 2,
-            first_name: "John",
-            last_name: "Doe",
-            avatar: "https://www.gstatic.com/webp/gallery/1.jpg",
-          },
-          listMessages: {
-            messages: [
-              {
-                id: 1,
-                type: 0,
-                content: "Hello World",
-                userlatestSeen: null,
-                createdAt: "2023-08-19 20:15:10",
-              },
-              {
-                id: 2,
-                type: 1,
-                content: "https://www.gstatic.com/webp/gallery/1.jpg",
-                createdAt: "2022-10-10 10:15:10",
-              },
-              {
-                id: 3,
-                type: 0,
-                content: "Shall we go for Hiking this weekend?",
-                userlatestSeen: null,
-                createdAt: "2022-12-10 9:20:10",
-              },
-            ],
-            firstOfAvgFourHour: true,
-          },
-        },
-        {
-          profile: {
-            id: 1,
-            first_name: "John",
-            last_name: "Doe",
-            avatar: "https://www.gstatic.com/webp/gallery/1.jpg",
-          },
-          listMessages: {
-            messages: [
-              {
-                id: 1,
-                type: 0,
-                content: "Hello World",
-                userlatestSeen: null,
-                createdAt: "2023-08-19 20:15:10",
-              },
-              {
-                id: 2,
-                type: 1,
-                content: "https://www.gstatic.com/webp/gallery/1.jpg",
-                userlatestSeen: null,
-                createdAt: "2023-08-19 20:15:10",
-              },
-              {
-                id: 3,
-                type: 0,
-                content: "Shall we go for Hiking this weekend?",
-                userlatestSeen: [
-                  {
-                    id: 1,
-                    first_name: "John",
-                    last_name: "Doe",
-                    avatar: "https://www.gstatic.com/webp/gallery/1.jpg",
-                  },
-                ],
-                createdAt: "2022-10-10 10:20:10",
-              },
-            ],
-            firstOfAvgFourHour: false,
-          },
-        },
-      ];
-
       try {
         let res = await services.conversation.viewConversation(params.id);
-        console.log(res);
         setConversationInfo(res.data.conversation.info);
         setListUserOfConversation(res.data.conversation.listUser);
         const messageData = res.data.listMessage.map((item: any) => {
@@ -205,16 +86,6 @@ export default function MessageDetail({ params }: { params: { id: number } }) {
         });
         setListMessages(messageData);
       } catch (error: any) {
-        if (error.code == HTTP_CODE.UNAUTHORIZED) {
-          setErrorMessage("Phiên đăng nhập đã hết hạn!");
-          removeToken();
-          setTimeout(function () {
-            router.push("/auth/login");
-          }, 1000);
-        }
-        if (error.code == HTTP_CODE.NOT_FOUND) {
-            router.push("/messages/t");
-        }
         setErrorMessage(error.message.slice());
       }
   };
@@ -225,8 +96,6 @@ export default function MessageDetail({ params }: { params: { id: number } }) {
         await getListConversation();
     }
     fetchMyAPI();
-
-    console.log(store.getState().auth.userProfile);
   }, []);
   return (
     <main className="mb-4">

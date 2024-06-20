@@ -1,6 +1,10 @@
+import HTTP_CODE from "@/constants/http-code";
 import VALIDATION from "@/constants/validation";
+import { clearToken, setTokenExpriredToast } from "@/redux/slices/AuthSlice";
 import { store } from "@/redux/store";
 import { ErrorResponse } from "@/types";
+import { deleteCookie } from "cookies-next";
+import { redirectToRoute } from "@/helpers/redirect";
 
 const headers = {
   "content-type": "application/json",
@@ -9,49 +13,45 @@ const headers = {
 };
 
 async function handleResponse(p_response: any) {
-  if (p_response.ok) {
-    return p_response.json().catch(() => {});
+  let json = {
+    message: "",
+    errors: {
+      code: 0
+    },
+  };
+  json = await p_response.json();
+  let errorMessages: Array<string> = [];
+  let errorsObject: any;
+  let errors: Array<string> = [];
+  let codeEnumError : number = 0;
+  if (json.errors && p_response.status == VALIDATION.ERROR_CODE.VALIDATE_FAILED) {
+    errorsObject = Object.fromEntries(
+      Object.entries(json.errors).map(([key, value]: [string, string[]]) => [
+        key,
+        value[0],
+      ])
+    );
+
+    Object.keys(errorsObject).map(function (index) {
+      errorMessages.push(errorsObject[index]);
+    });
+
+    errors = errorMessages;
   } else {
-    let json = {
-      message: "",
-      errors: {},
-    };
-    json = await p_response.json();
-    let errorMessages: Array<string> = [];
-    let errorsObject: any;
-    let errors: Array<string> = [];
-    let codeEnumError : number = 0;
-    if (json.errors && p_response.status == VALIDATION.ERROR_CODE.VALIDATE_FAILED) {
-      errorsObject = Object.fromEntries(
-        Object.entries(json.errors).map(([key, value]: [string, string[]]) => [
-          key,
-          value[0],
-        ])
-      );
-
-      Object.keys(errorsObject).map(function (index) {
-        errorMessages.push(errorsObject[index]);
-      });
-
-      errors = errorMessages;
-    } else {
-      errors = [json.message];
-      codeEnumError = json.errors?.code ?? 0;
-    }
-
-    let error: ErrorResponse = {
-      code: p_response.status,
-      message: errors,
-      codeEnumError: codeEnumError
-    };
-
-    console.log(error);
-
-    throw error;
+    errors = [json.message];
+    codeEnumError = json.errors?.code ?? 0;
   }
+
+  let error: ErrorResponse = {
+    code: p_response.status,
+    message: errors,
+    codeEnumError: codeEnumError
+  };
+
+  return error;
 }
 
-const get: Function = (
+const get: Function = async (
   p_route: string,
   params: Record<string, any> | null,
   noCache = false
@@ -69,37 +69,65 @@ const get: Function = (
     newHeaders["cache-control"] = "no-cache";
   }
 
-  return fetch(url, {
+  const response = await fetch(url, {
     headers: newHeaders,
     method: "GET",
     credentials: "same-origin",
-  }).then(async (p_response) => await handleResponse(p_response)).catch((error) => {
-    let errorResponse: ErrorResponse = {
-      code: error.code ?? 500,
-      message: [error.message],
-      codeEnumError: error.codeEnumError
-    };
-
-    throw errorResponse;
   });
+
+  if (!response.ok) {
+    if (response.status === HTTP_CODE.UNAUTHORIZED) {
+      handleErrorUnauthorized();
+    } else if (response.status === HTTP_CODE.NOT_FOUND) {
+      redirectToRoute("/not-found");
+    } else {
+      const errorHandle = await handleResponse(response);
+      const errorResponse: ErrorResponse = {
+        code: errorHandle.code ?? HTTP_CODE.INTERNAL_SERVER_ERROR,
+        message: errorHandle.message,
+        codeEnumError: errorHandle.codeEnumError
+      };
+
+      throw errorResponse;
+    }
+  }
+
+  return response.json().catch(() => {});
 };
 
-const post: Function = (p_route: string, p_body: Object) => {
+const post: Function = async (p_route: string, p_body: Object) => {
   headers.Authorization = `Bearer ${store.getState().auth.token}`;
-  return fetch(p_route, {
+  const response = await fetch(p_route, {
     headers: headers,
     method: "POST",
     body: JSON.stringify(p_body),
-  }).then(async (p_response) => await handleResponse(p_response)).catch((error) => {
-    let errorResponse: ErrorResponse = {
-      code: error.code ?? 500,
-      message: [error.message],
-      codeEnumError: error.codeEnumError
-    };
+  })
 
-    throw errorResponse;
-  });
+  if (!response.ok) {
+    if (response.status === HTTP_CODE.UNAUTHORIZED) {
+      handleErrorUnauthorized();
+    } else {
+      const errorHandle = await handleResponse(response);
+      const errorResponse: ErrorResponse = {
+        code: errorHandle.code ?? HTTP_CODE.INTERNAL_SERVER_ERROR,
+        message: errorHandle.message,
+        codeEnumError: errorHandle.codeEnumError
+      };
+
+      throw errorResponse;
+    }
+  }
+
+  return response.json().catch(() => {});
 };
+
+const handleErrorUnauthorized = () => {
+  store.dispatch(clearToken());
+  deleteCookie("isLogined");
+  deleteCookie("token");
+  store.dispatch(setTokenExpriredToast(true));
+  redirectToRoute("/auth/login");
+}
 
 export const api = {
   get,

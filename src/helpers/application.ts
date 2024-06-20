@@ -1,12 +1,10 @@
-import { useDispatch } from "react-redux";
-import { clearToken } from "@/redux/slices/AuthSlice";
-import { deleteCookie } from "cookies-next";
 import moment from "moment";
+import { clearToken } from "@/redux/slices/AuthSlice";
+import { store } from "@/redux/store";
+import { deleteCookie } from "cookies-next";
 
 export const removeToken = () => {
-    const dispatch = useDispatch();
-
-    dispatch(clearToken());
+    store.dispatch(clearToken());
     deleteCookie("isLogined");
     deleteCookie("token");
 }

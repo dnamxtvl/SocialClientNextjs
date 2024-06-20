@@ -18,8 +18,8 @@ import Snackbar from "@mui/material/Snackbar";
 import { Alert } from "@mui/material";
 import { useDispatch } from "react-redux";
 import { clearToken } from "@/redux/slices/AuthSlice";
-import HTTP_CODE from "@/constants/http-code";
 import { deleteCookie } from "cookies-next";
+import { removeToken } from "@/helpers/application";
 
 export default function Navbar() {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -68,20 +68,7 @@ export default function Navbar() {
     } catch (error: any) {
       setLoading(false);
       setLogoutSucess(true);
-      if (error.code == HTTP_CODE.UNAUTHORIZED) {
-        setErrorMessage("Phiên đăng nhập đã hết hạn!");
-        removeToken();
-        setTimeout(function () {
-          router.push("/auth/login");
-        }, 1000);
-      }
     }
-  };
-
-  const removeToken = () => {
-    dispatch(clearToken());
-    deleteCookie("isLogined");
-    deleteCookie("token");
   };
 
   const handleCloseNotification: Function = () => {

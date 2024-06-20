@@ -1,7 +1,6 @@
 "use client";
 
 import { useDispatch } from "react-redux";
-import { setProfile, setToken } from "@/redux/slices/AuthSlice";
 import { useEffect, useState } from "react";
 import { store } from "@/redux/store";
 import services from "@/services/Index";
@@ -24,6 +23,7 @@ import RESPONSE_CODE from "@/constants/response-code";
 import { DataUserLoginSuccess } from "@/types";
 import Link from "next/link";
 import { useValidator } from "@/helpers/validation";
+import { setToken, setProfile } from "@/redux/slices/AuthSlice";
 
 export default function login() {
   const [email, setEmail] = useState("");
@@ -159,6 +159,10 @@ export default function login() {
   };
 
   const checkIsLogined: Function = () => {
+    if (store.getState().auth.tokenExpriredToast) {
+      setErrorMessages(["Phiên đăng nhập đã hết hạn!"]);
+    }
+
     if (store.getState().auth.isLogined == "true") {
       router.push("/");
     }
@@ -270,8 +274,8 @@ export default function login() {
         autoHideDuration={3000}
         onClose={handleCloseNotification}
       >
-        <Alert severity="success" sx={{ width: "100%" }}>
-          Đăng nhập thành công!
+        <Alert severity={loginSuccess ? "success" : "error"} sx={{ width: "100%" }}>
+          { loginSuccess ? "Đăng nhập thành công!" : errorMessages[0] }
         </Alert>
       </Snackbar>
       <Snackbar open={failVerify} autoHideDuration={1000}>
