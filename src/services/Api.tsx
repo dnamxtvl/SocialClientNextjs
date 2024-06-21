@@ -78,6 +78,13 @@ const get: Function = async (
   if (!response.ok) {
     if (response.status === HTTP_CODE.UNAUTHORIZED) {
       handleErrorUnauthorized();
+
+      throw {
+        message: "",
+        errors: {
+          code: 0
+        },
+      };
     } else if (response.status === HTTP_CODE.NOT_FOUND) {
       redirectToRoute("/not-found");
     } else {

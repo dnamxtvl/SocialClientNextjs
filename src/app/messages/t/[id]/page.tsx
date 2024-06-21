@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef} from "react";
 import { SideBarChat } from "@/components/layouts/Messages/SideBarChat";
 import { HeaderChat } from "@/components/layouts/Messages/HeaderChat";
 import { ListMessageDetail } from "@/types";
@@ -14,14 +14,14 @@ import KeyboardVoiceIcon from '@mui/icons-material/KeyboardVoice';
 import InsertEmoticonIcon from '@mui/icons-material/InsertEmoticon';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import services from "@/services/Index";
-import HTTP_CODE from "@/constants/http-code";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { deleteCookie } from "cookies-next";
-import { clearToken, setTokenExpriredToast } from "@/redux/slices/AuthSlice";
+import { clearToken } from "@/redux/slices/AuthSlice";
 import { Alert, Snackbar } from "@mui/material";
 import { CHAT_SERVICE_HOST } from "@/environments";
 import { store } from "@/redux/store";
+import { io } from "socket.io-client";
 
 export default function MessageDetail({ params }: { params: { id: number } }) {
   const [listMessages, setListMessages] = useState<any>(
@@ -40,6 +40,8 @@ export default function MessageDetail({ params }: { params: { id: number } }) {
     deleteCookie("token");
   };
 
+  const socket = io("http://localhost:3003");
+  const socketRef = useRef();
   const authUser = store.getState().auth.userProfile;
 
   const getListConversation = async () => {
@@ -91,6 +93,15 @@ export default function MessageDetail({ params }: { params: { id: number } }) {
   };
 
   useEffect(() => {
+    if (!socketRef.current) {
+      socketRef.current = io('http://localhost:3003');
+      console.log('Socket connected');
+      return () => {
+        socketRef.current.disconnect();
+        console.log('Socket disconnected');
+      };
+    }
+    // socket.emit('sendMessage', { message: "test scoket realtime tu front end" });
     async function fetchMyAPI() {
         await getListMessageDetail();
         await getListConversation();
