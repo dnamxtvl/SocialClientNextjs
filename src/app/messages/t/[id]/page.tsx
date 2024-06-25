@@ -68,39 +68,71 @@ export default function MessageDetail({ params }: { params: { id: number } }) {
     }
   };
 
+  const [file, setFile] = useState<any>();
+
   const getListMessageDetail: Function = async () => {
-      try {
-        let res = await services.conversation.viewConversation(params.id);
-        setConversationInfo(res.data.conversation.info);
-        setListUserOfConversation(res.data.conversation.listUser);
-        const messageData = res.data.listMessage.map((item: any) => {
-          return {
-            profile: item.profile,
-            message: {
-              id: item.message.id,
-              type: item.message.type,
-              content: item.message.content,
-              userlatestSeen: item.message.userlatestSeen,
-              firstOfAvgTime: item.message.firstOfAvgTime,
-              createdAt: item.message.createdAt,
-            },
-          };
-        });
-        setListMessages(messageData);
-      } catch (error: any) {
-        setErrorMessage(error.message.slice());
-      }
+    try {
+      let res = await services.conversation.viewConversation(params.id);
+      setConversationInfo(res.data.conversation.info);
+      setListUserOfConversation(res.data.conversation.listUser);
+      const messageData = res.data.listMessage.map((item: any) => {
+        return {
+          profile: item.profile,
+          message: {
+            id: item.message.id,
+            type: item.message.type,
+            content: item.message.content,
+            userlatestSeen: item.message.userlatestSeen,
+            firstOfAvgTime: item.message.firstOfAvgTime,
+            createdAt: item.message.createdAt,
+          },
+        };
+      });
+      setListMessages(messageData);
+    } catch (error: any) {
+      setErrorMessage(error.message.slice());
+    }
+  };
+
+  const handleChangeFile = (e: any) => {
+    setFile(e.target.files[0]);
+  }
+
+  const uploadFile = async (event: any) => {
+    event.preventDefault();
+    let formData = new FormData();
+    if (file) {
+      formData.append("file", file);
+      formData.append("fileName", "fileName");
+      console.log("pdfFile form addProject", file);
+      console.log("pdfFile.data form addProject", file);
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const pdfUploadResult = await response.json();
+      console.log(pdfUploadResult);
+    }
   };
 
   useEffect(() => {
-    if (!socketRef.current) {
-      socketRef.current = io('http://localhost:3003');
-      console.log('Socket connected');
-      return () => {
-        socketRef.current.disconnect();
-        console.log('Socket disconnected');
-      };
-    }
+    // socket.on('recMessage', (message) => {
+    //   console.log(message);
+    //  });
+    //  socket.emit('sendMessage', { message: "test scoket realtime tu front end" });
+    //   // return () => {
+    // if (!socketRef.current) {
+    //   socketRef.current = io('http://localhost:3003');
+    //   console.log('Socket connected');
+      // socketRef.current.on('recMessage', (message) => {
+      //   console.log(message);
+      //   // Xử lý message ở đây, ví dụ: cập nhật state, hiển thị thông báo,...
+      // });
+      
+      //   socketRef.current.disconnect();
+      //   console.log('Socket disconnected');
+      // };
+    //}
     // socket.emit('sendMessage', { message: "test scoket realtime tu front end" });
     async function fetchMyAPI() {
         await getListMessageDetail();
@@ -166,12 +198,15 @@ export default function MessageDetail({ params }: { params: { id: number } }) {
                   >
                     <AddCircleIcon />
                   </button>
+                  <form onSubmit={uploadFile}>
+                    <input type="file" onChange={handleChangeFile} />
                   <button
-                    type="button"
+                    type="submit"
                     className="flex flex-shrink-0 focus:outline-none mx-2 block text-blue-600 hover:text-blue-700 w-4 h-6"
                   >
                     <InsertPhotoIcon />
                   </button>
+                  </form>
                   <button
                     type="button"
                     className="flex flex-shrink-0 focus:outline-none mx-2 block text-blue-600 hover:text-blue-700 w-4 h-6"
