@@ -3,15 +3,11 @@ import { NextResponse} from "next/server"
 import { Readable } from "node:stream"
 
 export async function POST(request: Request) {
-  console.log("request : " , "ahihihi");
   const formData = await request.formData();
-  console.log("da vao dc day");
-  const file:any = formData.get('file');
-  console.log("file : " , file);
-  const filename : any = formData.get("fileName")
-  console.log("filename : " , filename);
+  console.log(formData);
+  const file: any = formData.get('file');
+  const filename: any = formData.get("fileName");
   const fileBuffer = file.stream();
-  
 
   const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_DRIVE_CLIENT_ID,
@@ -20,41 +16,25 @@ export async function POST(request: Request) {
   )
   oauth2Client.setCredentials({refresh_token: process.env.GOOGLE_DRIVE_REFRESH_TOKEN})
 
-  // const auth = new google.auth.GoogleAuth({
-  //   scopes: "https://www.googleapis.com/auth/drive",
-  //   projectId:process.env.GOOGLE_DRIVE_PROJECT_ID,
-  //   credentials:{
-  //     client_id:process.env.GOOGLE_DRIVE_CLIENT_ID,
-  //     client_email: "nam.dovan1@vti.com.vn",
-  //     private_key:process.env.GOOGLE_DRIVE_SERECT_KEY
-  //   }
-  // })
-
-  const uploadToGooglDrive = async()=>{
-    const fileMetadata = {
-      name: filename,  
-      parents: ["1lC8qQ8PB6zCwGhQuO9PT_rmT7Wa2wYP6"], 
-    };
-
+  const uploadToGooglDrive = async () =>{
     const driveService = google.drive({ version: "v3", auth:oauth2Client });
     const response = await driveService.files.create({
       requestBody: {
-        name: "iloveyou_cr7_ahihi.jpg",
-        mimeType: '"image/png"'
+        name: file.name,
+        mimeType: file.type,
+        parents: ["1hIfIb-YL7k33UPC9zGskS7u4FK8aF2iJ"]
       },
       media: {
-        mimeType : "image/png" , 
+        mimeType : file.type, 
         body:Readable.from(fileBuffer)
       },
       fields: "id",
     });
-    console.log("res : " , response.data.id);
-      return {docId :response.data.id , success : true}
-    
+
+    return {docId :response.data.id , success : true}
   }
   try {
     const res = await uploadToGooglDrive()
-    console.log("res : " , res);
     return NextResponse.json(res);
   } catch (error) {
     console.log("error : " , error);

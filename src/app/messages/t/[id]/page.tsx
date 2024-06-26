@@ -22,6 +22,7 @@ import { Alert, Snackbar } from "@mui/material";
 import { CHAT_SERVICE_HOST } from "@/environments";
 import { store } from "@/redux/store";
 import { io } from "socket.io-client";
+import axios from "axios";
 
 export default function MessageDetail({ params }: { params: { id: number } }) {
   const [listMessages, setListMessages] = useState<any>(
@@ -106,12 +107,16 @@ export default function MessageDetail({ params }: { params: { id: number } }) {
       formData.append("fileName", "fileName");
       console.log("pdfFile form addProject", file);
       console.log("pdfFile.data form addProject", file);
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
+      const response = await axios.post("/api/upload", formData, {
+        onUploadProgress: (progressEvent) => {
+          console.log('progressEvent', progressEvent)
+          if (progressEvent.bytes) {
+            console.log(progressEvent.loaded);
+            console.log(Math.round((progressEvent.loaded / progressEvent.total)*100) - 1);
+          }
+        },
       });
-      const pdfUploadResult = await response.json();
-      console.log(pdfUploadResult);
+      console.log(response);
     }
   };
 
