@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef} from "react";
 import { SideBarChat } from "@/components/layouts/Messages/SideBarChat";
 import { HeaderChat } from "@/components/layouts/Messages/HeaderChat";
-import { ListMessageDetail } from "@/types";
 import { ItemMessagePartner } from "@/components/layouts/Messages/ItemMessagePartner";
 import { ItemMessageMe } from "@/components/layouts/Messages/ItemMessageMe";
 import moment from "moment";
@@ -112,7 +111,7 @@ export default function MessageDetail({ params }: { params: { id: number } }) {
           console.log('progressEvent', progressEvent)
           if (progressEvent.bytes) {
             console.log(progressEvent.loaded);
-            console.log(Math.round((progressEvent.loaded / progressEvent.total)*100) - 1);
+            console.log(Math.round((progressEvent.loaded / progressEvent.total)*100));
           }
         },
       });
