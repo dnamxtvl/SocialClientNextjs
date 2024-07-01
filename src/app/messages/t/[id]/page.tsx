@@ -104,8 +104,6 @@ export default function MessageDetail({ params }: { params: { id: number } }) {
     if (file) {
       formData.append("file", file);
       formData.append("fileName", "fileName");
-      console.log("pdfFile form addProject", file);
-      console.log("pdfFile.data form addProject", file);
       const response = await axios.post("/api/upload", formData, {
         onUploadProgress: (progressEvent) => {
           console.log('progressEvent', progressEvent)
@@ -119,24 +117,23 @@ export default function MessageDetail({ params }: { params: { id: number } }) {
     }
   };
 
+  const [progress, setProgress] = useState(0);
+  const [fileLink, setFileLink] = useState('');
+
+  const handleFileChange = (event: any) => {
+    console.log(event.target.files[0]);
+    setFile(event.target.files[0]);
+  };
+
   useEffect(() => {
-    // socket.on('recMessage', (message) => {
-    //   console.log(message);
-    //  });
-    //  socket.emit('sendMessage', { message: "test scoket realtime tu front end" });
-    //   // return () => {
     // if (!socketRef.current) {
     //   socketRef.current = io('http://localhost:3003');
     //   console.log('Socket connected');
-      // socketRef.current.on('recMessage', (message) => {
-      //   console.log(message);
-      //   // Xử lý message ở đây, ví dụ: cập nhật state, hiển thị thông báo,...
-      // });
-      
-      //   socketRef.current.disconnect();
-      //   console.log('Socket disconnected');
-      // };
-    //}
+    //   return () => {
+    //     // socketRef.current.disconnect();
+    //     // console.log('Socket disconnected');
+    //   };
+    // }
     // socket.emit('sendMessage', { message: "test scoket realtime tu front end" });
     async function fetchMyAPI() {
         await getListMessageDetail();
@@ -203,7 +200,7 @@ export default function MessageDetail({ params }: { params: { id: number } }) {
                     <AddCircleIcon />
                   </button>
                   <form onSubmit={uploadFile}>
-                    <input type="file" onChange={handleChangeFile} />
+                  <input type="file" onChange={handleFileChange} name="myfile"/>
                   <button
                     type="submit"
                     className="flex flex-shrink-0 focus:outline-none mx-2 block text-blue-600 hover:text-blue-700 w-4 h-6"

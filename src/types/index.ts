@@ -29,7 +29,7 @@ export interface ProfileMessagePartner {
 export interface ItemMessage {
     id: number,
     type: number,
-    content: string,
+    content: string | Array<string> ,
     firstOfAvgTime: boolean,
     userlatestSeen?: Array<ProfileMessagePartner> | ProfileMessagePartner | null,
     userSender?: ProfileMessagePartner | null,
