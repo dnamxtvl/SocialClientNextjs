@@ -33,6 +33,8 @@ export interface ItemMessage {
     firstOfAvgTime: boolean,
     userlatestSeen?: Array<ProfileMessagePartner> | ProfileMessagePartner | null,
     userSender?: ProfileMessagePartner | null,
+    status?: number,
+    percentUpload?: number,
     createdAt: string,
 }
 
@@ -45,8 +47,17 @@ export interface ListMessageDetail {
 }
 
 export interface ItemConversation {
-    avatar: Url | Array<Url> | null,
+    id: string,
+    avatar: string | null,
     name: string,
     noUnredMessage: number,
-    message: ItemMessage | null
+    message: ItemMessage | null,
+    userSendLatestMessage?: ProfileMessagePartner | null
+}
+
+export interface SendMessageParams {
+    message?: string,
+    messageUUId?: string,
+    files?: Array<File>,
+    fileUUIds?: Array<string>
 }

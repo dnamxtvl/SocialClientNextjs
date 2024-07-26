@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { S3 } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
-
+import { io } from "socket.io-client";
 import {
   S3Client,
   ListObjectsCommand,
-  PutObjectCommand,
 } from "@aws-sdk/client-s3";
 
 const Bucket = process.env.AWS_BUCKET_NAME;
@@ -22,29 +20,40 @@ export async function GET() {
   return NextResponse.json(response?.Contents ?? []);
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest, res: NextApiResponseWithSocket) {
   try {
-    const formData = await request.formData();
-    const file: any = formData.get("file");
-    const key = 'conversation/' + file.name + '_' + Date.now();
-    const Body = Buffer.from(await file.arrayBuffer());
-    // const response = await s3.send(new PutObjectCommand({ Bucket, Key: key, Body }));
-    const parallelUploads3 = new Upload({
-      client: s3,
-      queueSize: 4, // optional concurrency configuration
-      partSize: 5 * 1024 * 1024, // optional size of each part
-      leavePartsOnError: false, // optional manually handle dropped parts
-      params: { Bucket, Key: key, Body },
-    });
+    const socket = io('http://localhost:3005');
+    const formData = await req.formData();
+    const files: any = formData.getAll("file");
+    const userId: string = formData.get("userId") as string;
+    socket.emit("uploadProgress", {message: "uploading ahihi", userId: userId});
+    let responses = [];
+    for (const file of files) {
+      let key = 'conversation/' + file.name + '_' + Date.now();
+      let Body = Buffer.from(await file.arrayBuffer());
+      let parallelUploads3 = new Upload({
+        client: s3,
+        queueSize: 4, // optional concurrency configuration
+        partSize: 5 * 1024 * 1024, // optional size of each part
+        leavePartsOnError: false, // optional manually handle dropped parts
+        params: { Bucket, Key: key, Body },
+      });
+  console.log(parallelUploads3);
+      // parallelUploads3.on("httpUploadProgress", async (progress: any) => {
+      //   callScoket();
+      //   socket.emit("uploadProgress", {message: "uploading ahihi", userId: userId});
+      // });
+      // let response = await parallelUploads3.done();
+      //responses.push(response);
+    }
   
-    parallelUploads3.on("httpUploadProgress", (progress) => {
-      console.log(progress);
-    });
-  
-    const response = await parallelUploads3.done();
-    return NextResponse.json(response);
+    return NextResponse.json([]);
   } catch (error) {
     console.log("error : " , error);
     return NextResponse.json({success : false})
   }
+}
+
+export const callScoket = () => {
+  console.log('test call socket');
 }

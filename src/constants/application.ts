@@ -23,3 +23,11 @@ export const DATE_REGISTER_ACCOUNT = {
     MIN_YEAR_REGISTER_ACCOUNT: 1905
 };
 
+export const FRONTEND_URL = process.env.FRONT_END_URL;
+
+export const APPLICATION_CONST = {
+    FILE_UPLOAD: {
+        MAX_FILE_SIZE: 100 * 1024 * 1024,
+    }
+}
+

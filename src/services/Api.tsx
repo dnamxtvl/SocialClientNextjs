@@ -103,9 +103,17 @@ const get: Function = async (
 };
 
 const post: Function = async (p_route: string, p_body: Object) => {
-  headers.Authorization = `Bearer ${store.getState().auth.token}`;
+  alert(123);
+  console.log(p_body);
+  console.log(typeof p_body.files);
+  const headersPost = {
+    "content-type": "application/json",
+    "accept": "application/json",
+    "Authorization": "",
+  };
+  headersPost.Authorization = `Bearer ${store.getState().auth.token}`;
   const response = await fetch(p_route, {
-    headers: headers,
+    headers: headersPost,
     method: "POST",
     body: JSON.stringify(p_body),
   })

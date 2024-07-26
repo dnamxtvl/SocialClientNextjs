@@ -1,10 +1,7 @@
 "use client";
 
-import { useEffect, useState, useRef} from "react";
-import { SideBarChat } from "@/components/layouts/Messages/SideBarChat";
+import React, { useEffect, useState, useRef, useMemo} from "react";
 import { HeaderChat } from "@/components/layouts/Messages/HeaderChat";
-import { ItemMessagePartner } from "@/components/layouts/Messages/ItemMessagePartner";
-import { ItemMessageMe } from "@/components/layouts/Messages/ItemMessageMe";
 import moment from "moment";
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import InsertPhotoIcon from '@mui/icons-material/InsertPhoto';
@@ -21,54 +18,56 @@ import { Alert, Snackbar } from "@mui/material";
 import { CHAT_SERVICE_HOST } from "@/environments";
 import { store } from "@/redux/store";
 import { io } from "socket.io-client";
-import axios from "axios";
+import AudiotrackIcon from '@mui/icons-material/Audiotrack';
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import { ItemMessageMeMemo, ItemMessagePartnerMemo } from "@/components/layouts/Messages/ItemMessageMemo";
+import { STATUS, TYPE } from "@/constants/message";
+import { getTypeMessageForFile, addNewItemToListMessages, fileSorted } from "@/helpers/application";
+import axios, { AxiosError } from "axios";
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
+import { APPLICATION_CONST } from "@/constants/application";
+import HTTP_CODE from "@/constants/http-code";
+import { setTokenExpriredToast } from "@/redux/slices/AuthSlice";
+import { Context } from "../../context";
+import { useContext } from 'react'
 
-export default function MessageDetail({ params }: { params: { id: number } }) {
+const { v4: uuidv4 } = require('uuid');
+const md5 = require('md5');
+const socket = io('http://localhost:3003');
+
+export default function MessageDetail({ params }: { params: { id: string } }) {
   const [listMessages, setListMessages] = useState<any>(
     []
   );
-  const [listConversations, setListConversations] = useState([]);
-  const [pageConversation, setPageConversation] = useState<number>(1);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [conversationInfo, setConversationInfo] = useState<any>();
   const [listUserOfConversation, setListUserOfConversation] = useState<any>([]);
-  const router = useRouter();
+  const fileInputRef = useRef(null);
+  const messagesEndRef = useRef(null)
+  const [message, setMessage] = useState<string>("");
+  const [openModalError, setOpenModalError] = useState<boolean>(false);
+  const [modalErrorTitle, setModalErrorTitle] = useState<string>("");
+  const [modalErrorContent, setModalErrorContent] = useState<string>("");
   const dispatch = useDispatch();
+  const router = useRouter();
+  const { sortListConversations } = useContext(Context)
   const removeToken = () => {
     dispatch(clearToken());
     deleteCookie("isLogined");
     deleteCookie("token");
+    store.dispatch(setTokenExpriredToast(true));
+    router.push('/auth/login');
   };
 
-  const socket = io("http://localhost:3003");
-  const socketRef = useRef();
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const authUser = store.getState().auth.userProfile;
-
-  const getListConversation = async () => {
-    try {
-      let res = await services.conversation.listConversation(pageConversation);
-      const conversationData = res.data.map((item: any) => {
-        return {
-          id: item.conversation.id,
-          name: item.conversation.name,
-          avatar: CHAT_SERVICE_HOST + item.conversation.avatar,
-          noUnredMessage: item.noUnredMessage,
-          message: {
-            id: item.latestMessage.id,
-            content: item.latestMessage.content,
-            type: item.latestMessage.type,
-            userlatestSeen: null,
-            createdAt: item.latestMessage.createdAt,
-          },
-        };
-      });
-      setListConversations(conversationData);
-    } catch (error: any) {
-      setErrorMessage(error.message.slice());
-    }
-  };
-
-  const [file, setFile] = useState<any>();
 
   const getListMessageDetail: Function = async () => {
     try {
@@ -84,6 +83,8 @@ export default function MessageDetail({ params }: { params: { id: number } }) {
             content: item.message.content,
             userlatestSeen: item.message.userlatestSeen,
             firstOfAvgTime: item.message.firstOfAvgTime,
+            status: item.message.status ?? STATUS.SENT,
+            percentUpload: item.message.percentUpload ?? 0,
             createdAt: item.message.createdAt,
           },
         };
@@ -94,160 +95,472 @@ export default function MessageDetail({ params }: { params: { id: number } }) {
     }
   };
 
-  const handleChangeFile = (e: any) => {
-    setFile(e.target.files[0]);
+  const validateFileSize = (files: Array<File>) => {
+    let isMaxSize = false;
+    for (const file of files) {
+      if (file.size > APPLICATION_CONST.FILE_UPLOAD.MAX_FILE_SIZE) {
+        setOpenModalError(true);
+        setModalErrorTitle("Vượt quá dung lượng tải lên cho phép!");
+        setModalErrorContent(file.name + " có dung lơn vượt quá 100mb");
+        isMaxSize = true;
+        break;
+      } 
+    }
+
+    return isMaxSize;
   }
 
-  const uploadFile = async (event: any) => {
-    event.preventDefault();
-    let formData = new FormData();
-    if (file) {
-      formData.append("file", file);
-      formData.append("fileName", "fileName");
-      const response = await axios.post("/api/upload", formData, {
-        onUploadProgress: (progressEvent) => {
-          console.log('progressEvent', progressEvent)
-          if (progressEvent.bytes) {
-            console.log(progressEvent.loaded);
-            console.log(Math.round((progressEvent.loaded / progressEvent.total)*100));
-          }
+  const sendMessage = async () => {
+    if (message.length == 0 && selectedFiles.length == 0) {
+      return;
+    }
+
+    if (selectedFiles.length > 0) {
+      const isMaxSize = validateFileSize(selectedFiles);
+      if (isMaxSize) {
+        return;
+      }
+    }
+
+    const selectedFilesEmptyType = selectedFiles.filter((item: File) => item.type);
+    let firstOfAvg = false;
+    let messageUUId = '';
+
+    if (message.length > 0) {
+      messageUUId = md5(uuidv4() + '_' + authUser?.id + '_' + Date.now());
+      firstOfAvg = listMessages.length == 0 ? true :
+        !(listMessages.some((item: any) => moment().diff(moment(item.message.createdAt), 'minutes') <= 15));
+
+      listMessages.push({
+        profile: {
+          id: authUser?.id,
+          firstName: authUser?.userName,
+          avatar: authUser?.avatar,
         },
-      });
-      console.log(response);
+        message: {
+          id: messageUUId,
+          type: TYPE.TEXT,
+          content: message,
+          userlatestSeen: null,
+          firstOfAvgTime: firstOfAvg,
+          status: STATUS.SENDING,
+          percentUpload: 0,
+          createdAt: new Date(),
+        },
+      })
+      setListMessages([...listMessages]);
+    }
+
+    let formData = new FormData();
+    let fileUUIds = [];
+    if (selectedFilesEmptyType.length > 0) {
+      let firstOfAvgTimeFile = firstOfAvg ? false :
+          !(listMessages.some((item: any) => moment().diff(moment(item.message.createdAt), 'minutes') <= 15));
+      const fileUploads = fileSorted(selectedFilesEmptyType);
+      let imagesContents = [];
+      const countImages = selectedFilesEmptyType.filter((item: any) => item.type.startsWith('image/')).length;
+      if (countImages > 0) {
+        let fileImageUUId = '';
+        imagesContents = selectedFilesEmptyType.filter((item: any) => item.type.startsWith('image/')).map((item: File) => {
+          fileImageUUId = md5(uuidv4() + '_' + authUser?.id + '_' + Date.now());
+          formData.append("files", item);
+          fileUUIds.push(fileImageUUId);
+
+          return {
+            name: item.name,
+            path: URL.createObjectURL(item),
+            mimeType: item.type,
+            size: item.size,
+          }
+        });
+
+        listMessages.push({
+          profile: {
+            id: authUser?.id,
+            firstName: authUser?.userName,
+            avatar: authUser?.avatar,
+          },
+          message: {
+            id: fileImageUUId,
+            type: countImages > 1 ? TYPE.IMAGES : TYPE.IMAGE,
+            content: countImages > 1 ? imagesContents : imagesContents[0],
+            userlatestSeen: null,
+            firstOfAvgTime: firstOfAvgTimeFile,
+            status: STATUS.SENDING,
+            percentUpload: 0,
+            createdAt: new Date(),
+          },
+        })
+
+        setListMessages([...listMessages]);
+        firstOfAvgTimeFile = false;
+      }
+      for (let file of fileUploads.filter((item: any) => getTypeMessageForFile(item.type) != TYPE.IMAGE)) {
+        if (getTypeMessageForFile(file.type) != TYPE.IMAGES) {
+          let fileUUId = md5(uuidv4() + '_' + authUser?.id + '_' + Date.now())
+          listMessages.push({
+            profile: {
+              id: authUser?.id,
+              firstName: authUser?.userName,
+              avatar: authUser?.avatar,
+            },
+            message: {
+              id: fileUUId,
+              type: getTypeMessageForFile(file.type),
+              content: {
+                name: file.name,
+                path: URL.createObjectURL(file),
+                mimeType: file.type,
+                size: file.size,
+              },
+              userlatestSeen: null,
+              firstOfAvgTime: firstOfAvgTimeFile,
+              status: STATUS.SENDING,
+              createdAt: new Date(),
+            },
+          })
+          firstOfAvgTimeFile = false;
+          setListMessages([...listMessages]);
+          fileUUIds.push(fileUUId);
+          formData.append("files", file);
+        }
+      }
+    }
+    
+    clearMessage();
+    scrollToButtonMessage();
+
+    formData.append('message', message);
+    formData.append('messageUUId', messageUUId);
+    formData.append('fileUUIds', fileUUIds.length > 0 ? fileUUIds.join() : "");
+
+    //save sending message to local storage
+    try {
+      await services.message.sendMessage(params.id, formData, store.getState().auth.token);
+    } catch (error: AxiosError | any) {
+      setErrorMessage(error.response?.data?.errors ?? "Đã xảy ra lỗi!");
+      if (error.response?.status == HTTP_CODE.UNAUTHORIZED) removeToken();
     }
   };
 
-  const [progress, setProgress] = useState(0);
-  const [fileLink, setFileLink] = useState('');
+  const clearMessage = () => {
+    setMessage("");
+    setSelectedFiles([]);
+  }
 
-  const handleFileChange = (event: any) => {
-    console.log(event.target.files[0]);
-    setFile(event.target.files[0]);
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    setSelectedFiles((prevFiles: any) => [...prevFiles, ...files]);
   };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles((prevFiles) => prevFiles.filter((_, i) => i !== index));
+  };
+
+  const handleIconClick = () => {
+    fileInputRef.current.value = null;
+    fileInputRef.current.click();
+  };
+
+  const renderFilePreview = (file: File) => {
+    if (file.type.startsWith('image/')) {
+      return <img src={URL.createObjectURL(file)} alt={file.name} className="w-20 h-20 object-cover rounded-lg" />;
+    } else if (file.type.startsWith('audio/')) {
+      return (
+        <div className="flex items-center w-20 h-20">
+          <AudiotrackIcon className="text-gray-500 w-full h-full" />
+          <span className="text-xs text-center">{file.name}</span>
+        </div>
+      );
+    } else if (file.type.startsWith('video/')) {
+      return <video className="text-gray-500 w-20 h-20" src={URL.createObjectURL(file)} autoPlay />;
+    } else {
+      return (
+        <div className="flex items-center w-20 h-20">
+          <InsertDriveFileIcon className="text-gray-500 w-full h-full" />
+          <span className="text-xs text-center">{file.name}</span>
+        </div>
+      );
+    }
+  };
+  
+  const renderedMessages = useMemo(() => {
+    return listMessages.map((item: any, index: number) => (
+      <div key={index}>
+        {item.message.firstOfAvgTime && (
+          <p className="p-4 text-center text-sm text-gray-500">
+            {moment(item.message.createdAt, "YYYY-MM-DD HH:mm:ss").format("DD MMM YYYY, HH:mm")}
+          </p>
+        )}
+        {item.profile.id !== authUser?.id ? (
+          <ItemMessagePartnerMemo index={index} item={item} />
+        ) : (
+          <ItemMessageMeMemo index={index} item={item} profilePartner={item.profile} />
+        )}
+      </div>
+    ));
+  }, [listMessages, authUser?.id]);
+
+  const scrollToButtonMessage = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+    }
+  }
+
+  const handleCloseModalError = () => {
+    setOpenModalError(false);
+    clearMessage();
+  }
 
   useEffect(() => {
-    // if (!socketRef.current) {
-    //   socketRef.current = io('http://localhost:3003');
-    //   console.log('Socket connected');
-    //   return () => {
-    //     // socketRef.current.disconnect();
-    //     // console.log('Socket disconnected');
-    //   };
-    // }
-    // socket.emit('sendMessage', { message: "test scoket realtime tu front end" });
+    scrollToButtonMessage();
+  }, [listMessages]);
+
+  useEffect(() => {
+    if (socket) {
+      socket.emit('joinRoom', {roomId: authUser?.id});
+
+      socket.on('uploadFilesProgress', (data: any) => {
+        const userSendId: string = data.userSend.id;
+        if (userSendId === authUser?.id) {
+          let messageUUId: string = data.messageUUId;
+          setListMessages((prevListMessages: any) => {
+            const updatedListMessages = prevListMessages.map((item: any) => {
+              if (item.message.id === messageUUId) {
+                return {
+                  ...item,
+                  message: {
+                    ...item.message,
+                    percentUpload: data.percent,
+                  }
+                };
+              }
+              return item;
+            });
+    
+            return updatedListMessages;
+          });
+        }
+      });
+
+      socket.on('sendMessageDone', (data: any) => {
+        const userSendId: string = data.userSend.id;
+        if (userSendId === authUser?.id) {
+          let messageUUId: string = data.messageUUId;
+          setListMessages((prevListMessages: any) => {
+            const updatedListMessages = prevListMessages.map((item: any) => {
+              if (item.message.id === messageUUId) {
+                return {
+                  ...item,
+                  message: {
+                    ...item.message,
+                    id: data.message.id,
+                    status: STATUS.SENT
+                  }
+                };
+              }
+              return item;
+            });
+    
+            return updatedListMessages;
+          });
+
+          let connversationUpdate = {
+            id: data.conversation.id,
+            userSendLatestMessage: data.userSend ? {
+              id: data.userSend.id,
+              firstName: data.userSend.firstName,
+              lastName: data.userSend.lastName,
+              avatar: data.userSend.avatar
+            } : null,
+            message: {
+              id: data.message.id,
+              content: data.message.content,
+              type: data.message.type,
+              userlatestSeen: null,
+              createdAt: data.message.createdAt
+            }
+          }
+          sortListConversations(connversationUpdate);
+        } else {
+          const newMessage = {
+            profile: data.userSend,
+            message: data.message
+          }
+
+          setListMessages((prevMessages: any) => {
+            const newMessages = [...prevMessages];
+            return addNewItemToListMessages(newMessages, newMessage);
+          });
+
+          let connversationUpdatePartner = {
+            id: data.conversation.id,
+            name: data.conversation.name,
+            avatar: data.conversation.avatar,
+            noUnredMessage: 1,
+            userSendLatestMessage: data.userSend ? {
+              id: data.userSend.id,
+              firstName: data.userSend.firstName,
+              lastName: data.userSend.lastName,
+              avatar: data.userSend.avatar
+            } : null,
+            message: {
+              id: data.message.id,
+              content: data.message.content,
+              type: data.message.type,
+              userlatestSeen: null,
+              createdAt: data.message.createdAt
+            }
+          }
+          sortListConversations(connversationUpdatePartner);
+        }
+      });
+    }
     async function fetchMyAPI() {
-        await getListMessageDetail();
-        await getListConversation();
+      await getListMessageDetail();
     }
     fetchMyAPI();
-  }, []);
+  }, [socket]);
+
   return (
-    <main className="mb-4">
+    <section className="flex flex-col flex-auto border-l border-gray-800">
       <Snackbar open={errorMessage.length > 0} autoHideDuration={2000}>
         <Alert severity="error" sx={{ width: "100%" }}>
           {errorMessage}
         </Alert>
       </Snackbar>
-      <div className="h-screen w-full flex antialiased text-gray-200 bg-gray-900 overflow-hidden">
-        <div className="flex-1 flex flex-col">
-          <div className="border-b-2 border-gray-800 p-2 flex flex-row z-20">
-            <div className="bg-red-600 w-3 h-3 rounded-full mr-2" />
-            <div className="bg-yellow-500 w-3 h-3 rounded-full mr-2" />
-            <div className="bg-green-500 w-3 h-3 rounded-full mr-2" />
-          </div>
-          <main className="flex-grow flex flex-row min-h-0">
-            {listConversations.length > 0 && (
-              <SideBarChat listConversations={listConversations} />
+      <Dialog
+        open={openModalError}
+        onClose={handleCloseModalError}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">{modalErrorTitle}</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            {modalErrorContent}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseModalError}>Đóng</Button>
+        </DialogActions>
+      </Dialog>
+      <HeaderChat />
+      <div
+        className="chat-body p-4 flex-1 overflow-y-scroll"
+        id="scrollableDiv"
+        ref={messagesEndRef}
+      >
+        {listMessages.length > 0 && renderedMessages}
+      </div>
+      <div className="chat-footer flex-none">
+        <div className="flex flex-row items-center p-4 pt-0">
+          <div className="flex-grow flex mt-auto mb-2">
+            <button
+              type="button"
+              onClick={handleIconClick}
+              className="flex flex-shrink-0 focus:outline-none mx-2 mr-3 block text-blue-600 hover:text-blue-700 w-4 h-6"
+            >
+              <AddCircleIcon />
+            </button>
+            <form onSubmit={sendMessage}>
+              <input
+                type="file"
+                onChange={handleFileChange}
+                multiple
+                name="myfile"
+                ref={fileInputRef}
+                style={{ display: "none" }}
+              />
+              {selectedFiles.length === 0 && (
+                <button
+                  type="button"
+                  onClick={handleIconClick}
+                  className="flex flex-shrink-0 focus:outline-none mx-2 mr-3 block text-blue-600 hover:text-blue-700 w-4 h-6"
+                >
+                  <InsertPhotoIcon />
+                </button>
+              )}
+            </form>
+            {selectedFiles.length === 0 && (
+              <>
+                <button
+                  type="button"
+                  className="flex flex-shrink-0 focus:outline-none mx-2 block text-blue-600 hover:text-blue-700 w-4 h-6"
+                >
+                  <CameraAltIcon />
+                </button>
+                <button
+                  type="button"
+                  className="flex flex-shrink-0 focus:outline-none mx-2 mr-3 block text-blue-600 hover:text-blue-700 w-4 h-6"
+                >
+                  <KeyboardVoiceIcon />
+                </button>
+              </>
             )}
-            <section className="flex flex-col flex-auto border-l border-gray-800">
-              <HeaderChat />
-              <div className="chat-body p-4 flex-1 overflow-y-scroll">
-                {listMessages.length > 0 &&
-                  listMessages.map((item, index) => {
-                    return (
-                      <div key={index}>
-                        {item.message.firstOfAvgTime && (
-                          <p className="p-4 text-center text-sm text-gray-500">
-                            {moment(
-                              item.message.createdAt,
-                              "YYYY-MM-DD HH:mm:ss"
-                            ).format("DD MMM YYYY, HH:mm")}
-                          </p>
-                        )}
-                        {item.profile.id !== authUser?.id ? (
-                          <ItemMessagePartner
-                            key={index}
-                            profile={item.profile}
-                            messagePartners={item.message}
-                          />
-                        ) : (
-                          <ItemMessageMe
-                            key={index}
-                            profile={item.profile}
-                            messagesMe={item.message}
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
-              </div>
-              <div className="chat-footer flex-none">
-                <div className="flex flex-row items-center p-4">
-                  <button
-                    type="button"
-                    className="flex flex-shrink-0 focus:outline-none mx-2 block text-blue-600 hover:text-blue-700 w-4 h-6"
-                  >
-                    <AddCircleIcon />
-                  </button>
-                  <form onSubmit={uploadFile}>
-                  <input type="file" onChange={handleFileChange} name="myfile"/>
-                  <button
-                    type="submit"
-                    className="flex flex-shrink-0 focus:outline-none mx-2 block text-blue-600 hover:text-blue-700 w-4 h-6"
-                  >
-                    <InsertPhotoIcon />
-                  </button>
-                  </form>
-                  <button
-                    type="button"
-                    className="flex flex-shrink-0 focus:outline-none mx-2 block text-blue-600 hover:text-blue-700 w-4 h-6"
-                  >
-                    <CameraAltIcon />
-                  </button>
-                  <button
-                    type="button"
-                    className="flex flex-shrink-0 focus:outline-none mx-2 block text-blue-600 hover:text-blue-700 w-4 h-6"
-                  >
-                    <KeyboardVoiceIcon />
-                  </button>
-                  <div className="relative flex-grow">
-                    <label>
-                      <input
-                        className="rounded-full ml-2 py-2 pl-3 pr-10 w-full border border-gray-800 focus:border-gray-700 bg-gray-800 focus:bg-gray-900 focus:outline-none text-gray-200 focus:shadow-md transition duration-300 ease-in"
-                        type="text"
-                        defaultValue=""
-                        placeholder="Aa"
-                      />
+          </div>
+          <div className="mt-4 w-full bg-blue-950 rounded-lg">
+            {selectedFiles.length > 0 && (
+              <div className="grid grid-cols-12 gap-2">
+                <AttachFileIcon
+                  className="w-20 h-20 text-blue-500 cursor-pointer pr-2"
+                  onClick={handleIconClick}
+                />
+                {selectedFiles.map((file, index) => (
+                  <div className="col-span-1 mb-4" key={index}>
+                    <div className="relative">
+                      {renderFilePreview(file)}
                       <button
                         type="button"
-                        className="absolute top-0 right-0 mt-2 mr-3 flex flex-shrink-0 focus:outline-none block text-blue-600 hover:text-blue-700 w-6 h-6"
+                        className="absolute top-0 right-0 p-1 text-red-600 hover:text-red-800"
+                        onClick={() => removeFile(index)}
                       >
-                        <InsertEmoticonIcon />
+                        &times;
                       </button>
-                    </label>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    className="flex ml-4 flex-shrink-0 focus:outline-none mx-2 block text-blue-600 hover:text-blue-700 w-6 h-6"
-                  >
-                    <ThumbUpIcon />
-                  </button>
-                </div>
+                ))}
               </div>
-            </section>
-          </main>
+            )}
+            <div className="w-full flex">
+              <input
+                className="rounded-full py-2 pl-3 pr-10 w-full border border-gray-800 focus:border-gray-700 bg-gray-800 focus:bg-gray-900 focus:outline-none text-gray-200 focus:shadow-md transition duration-300 ease-in"
+                type="text"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Aa"
+              />
+              <button
+                type="button"
+                className="top-0 ml-[-33px] right-0 mt-2 mr-3 flex flex-shrink-0 focus:outline-none block text-blue-600 hover:text-blue-700 w-6 h-6"
+              >
+                <InsertEmoticonIcon />
+              </button>
+            </div>
+          </div>
+          {selectedFiles.length === 0 && message.length === 0 && (
+            <div className="flex-grow flex mt-auto mb-2">
+              <button
+                type="button"
+                className="flex ml-2 mt-2 flex-shrink-0 focus:outline-none mx-2 block text-blue-600 hover:text-blue-700 w-6 h-6"
+              >
+                <ThumbUpIcon />
+              </button>
+            </div>
+          )}
+          {(selectedFiles.length > 0 || message.length > 0) && (
+            <div className="flex-grow flex mt-auto mb-2">
+              <button
+                onClick={sendMessage}
+                type="button"
+                className="flex ml-2 mt-2 flex-shrink-0 focus:outline-none mx-2 block text-blue-600 hover:text-blue-700 w-6 h-6"
+              >
+                <PlayArrowIcon />
+              </button>
+            </div>
+          )}
         </div>
       </div>
-    </main>
+    </section>
   );
 }

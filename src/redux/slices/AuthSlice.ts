@@ -2,7 +2,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { getCookie } from 'cookies-next';
 
 interface UserProfile {
-    id: number,
+    id: string,
     userName: string,
     avatar: string | null
 }

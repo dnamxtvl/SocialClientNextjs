@@ -15,6 +15,9 @@ const API_CONST = {
     CONVERSATION: {
         LIST: 'chat/user/conversation/list/',
         VIEW: 'chat/user/view-conversation/'
+    },
+    MESSAGE: {
+        SEND_MESSAGE: 'chat/send-message/'
     }
 };
 
