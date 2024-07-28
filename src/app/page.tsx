@@ -13,7 +13,7 @@ export default function Home() {
   useEffect(() => {
   }, []);
   return (
-    <main className="mb-4">
+    <main>
       <Navbar />
       <div className="p-8 text-grey-darkest">
         <div className="mb-8 p-2 mt-8 w-full flex justify-between flex-wrap">

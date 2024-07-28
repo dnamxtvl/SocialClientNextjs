@@ -15,7 +15,6 @@ import { useDispatch } from "react-redux";
 import { deleteCookie } from "cookies-next";
 import { clearToken } from "@/redux/slices/AuthSlice";
 import { Alert, Snackbar } from "@mui/material";
-import { CHAT_SERVICE_HOST } from "@/environments";
 import { store } from "@/redux/store";
 import { io } from "socket.io-client";
 import AudiotrackIcon from '@mui/icons-material/Audiotrack';
@@ -25,7 +24,6 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { ItemMessageMeMemo, ItemMessagePartnerMemo } from "@/components/layouts/Messages/ItemMessageMemo";
 import { STATUS, TYPE } from "@/constants/message";
 import { getTypeMessageForFile, addNewItemToListMessages, fileSorted } from "@/helpers/application";
-import axios, { AxiosError } from "axios";
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
@@ -37,6 +35,10 @@ import HTTP_CODE from "@/constants/http-code";
 import { setTokenExpriredToast } from "@/redux/slices/AuthSlice";
 import { Context } from "../../context";
 import { useContext } from 'react'
+import CircularProgress from "@mui/material/CircularProgress";
+import Backdrop from "@mui/material/Backdrop";
+import { AxiosError } from "axios";
+import SessionStorageManager from "@/helpers/session-storage";
 
 const { v4: uuidv4 } = require('uuid');
 const md5 = require('md5');
@@ -55,6 +57,10 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
   const [openModalError, setOpenModalError] = useState<boolean>(false);
   const [modalErrorTitle, setModalErrorTitle] = useState<string>("");
   const [modalErrorContent, setModalErrorContent] = useState<string>("");
+  const [isLoading, setLoading] = useState<boolean>(false);
+  const [pageMessage, setPageMessage] = useState<number>(1);
+  const [isLastPage, setIsLastPage] = useState<boolean>(false);
+  const [isScrollTop, setIsScrollTop] = useState<boolean>(false);
   const dispatch = useDispatch();
   const router = useRouter();
   const { sortListConversations } = useContext(Context)
@@ -68,12 +74,19 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
 
   const [selectedFiles, setSelectedFiles] = useState([]);
   const authUser = store.getState().auth.userProfile;
+  const keySaveLocalStorage = authUser?.id + params.id;
 
   const getListMessageDetail: Function = async () => {
     try {
-      let res = await services.conversation.viewConversation(params.id);
+      setLoading(true);
+      let res = await services.conversation.viewConversation(params.id, listMessages.length);
       setConversationInfo(res.data.conversation.info);
       setListUserOfConversation(res.data.conversation.listUser);
+
+      if (res.data.listMessage.length < APPLICATION_CONST.MESSAGE.LIMIT_PAGE) {
+        setIsLastPage(true);
+      }
+
       const messageData = res.data.listMessage.map((item: any) => {
         return {
           profile: item.profile,
@@ -89,9 +102,18 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
           },
         };
       });
-      setListMessages(messageData);
+
+      const listSendingMessage = SessionStorageManager.getSessionStorageItemsWithPrefix(keySaveLocalStorage) ?? [];
+      console.log(listSendingMessage);
+      let listMessageConvert = listMessages.length > 0 ? [...listMessages, ...messageData] : messageData;;
+      if (listSendingMessage.length >  0) {
+        listMessageConvert = [...listMessageConvert, ...listSendingMessage].sort((a, b) => new Date(b.message.createdAt) - new Date(a.message.createdAt));
+      }
+      setListMessages([...listMessageConvert]);
+      setLoading(false);
     } catch (error: any) {
       setErrorMessage(error.message.slice());
+      setLoading(false);
     }
   };
 
@@ -131,7 +153,7 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
       firstOfAvg = listMessages.length == 0 ? true :
         !(listMessages.some((item: any) => moment().diff(moment(item.message.createdAt), 'minutes') <= 15));
 
-      listMessages.push({
+      const itemMessageText = {
         profile: {
           id: authUser?.id,
           firstName: authUser?.userName,
@@ -145,9 +167,12 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
           firstOfAvgTime: firstOfAvg,
           status: STATUS.SENDING,
           percentUpload: 0,
-          createdAt: new Date(),
+          createdAt: moment(new Date()).format('YYYY-MM-DD HH:mm:ss.SSS'),
         },
-      })
+      };
+      listMessages.unshift(itemMessageText);
+      const keyMessageTextLocalStorage = keySaveLocalStorage + '_' + messageUUId;
+      SessionStorageManager.setItemWithKey(keyMessageTextLocalStorage, itemMessageText, 1 / (12*24));
       setListMessages([...listMessages]);
     }
 
@@ -174,7 +199,7 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
           }
         });
 
-        listMessages.push({
+        const itemMessageImages = {
           profile: {
             id: authUser?.id,
             firstName: authUser?.userName,
@@ -188,17 +213,20 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
             firstOfAvgTime: firstOfAvgTimeFile,
             status: STATUS.SENDING,
             percentUpload: 0,
-            createdAt: new Date(),
+            createdAt: moment(new Date()).format('YYYY-MM-DD HH:mm:ss.SSS'),
           },
-        })
-
+        }
+        listMessages.unshift(itemMessageImages)
+        const ketMessageImagesLocalStorage = keySaveLocalStorage + '_' + fileImageUUId;
+        SessionStorageManager.setItemWithKey(ketMessageImagesLocalStorage, itemMessageImages, 1 / (12*24));
         setListMessages([...listMessages]);
         firstOfAvgTimeFile = false;
       }
       for (let file of fileUploads.filter((item: any) => getTypeMessageForFile(item.type) != TYPE.IMAGE)) {
+        let rangerMiniSecond = 0;
         if (getTypeMessageForFile(file.type) != TYPE.IMAGES) {
-          let fileUUId = md5(uuidv4() + '_' + authUser?.id + '_' + Date.now())
-          listMessages.push({
+          let fileUUId = md5(uuidv4() + '_' + authUser?.id + '_' + Date.now());
+          let itemMessageFile = {
             profile: {
               id: authUser?.id,
               firstName: authUser?.userName,
@@ -216,17 +244,21 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
               userlatestSeen: null,
               firstOfAvgTime: firstOfAvgTimeFile,
               status: STATUS.SENDING,
-              createdAt: new Date(),
+              createdAt: moment(new Date()).add(rangerMiniSecond, 'milliseconds').format('YYYY-MM-DD HH:mm:ss.SSS'),
             },
-          })
+          }
+          listMessages.unshift(itemMessageFile);
+          let ketMessageFileLocalStorage = keySaveLocalStorage + '_' + fileUUId;
+          SessionStorageManager.setItemWithKey(ketMessageFileLocalStorage, itemMessageFile, 1 / (12*24));
           firstOfAvgTimeFile = false;
           setListMessages([...listMessages]);
           fileUUIds.push(fileUUId);
           formData.append("files", file);
         }
+        rangerMiniSecond = rangerMiniSecond + 50
       }
     }
-    
+
     clearMessage();
     scrollToButtonMessage();
 
@@ -303,18 +335,15 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
 
   const scrollToButtonMessage = () => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+      messagesEndRef.current.scrollTop = 0;
     }
+    setIsScrollTop(false);
   }
 
   const handleCloseModalError = () => {
     setOpenModalError(false);
     clearMessage();
   }
-
-  useEffect(() => {
-    scrollToButtonMessage();
-  }, [listMessages]);
 
   useEffect(() => {
     if (socket) {
@@ -355,6 +384,7 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
                   message: {
                     ...item.message,
                     id: data.message.id,
+                    content: data.message.content,
                     status: STATUS.SENT
                   }
                 };
@@ -365,7 +395,10 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
             return updatedListMessages;
           });
 
+          SessionStorageManager.removeItem(keySaveLocalStorage + "_" + data.messageUUId);
+
           let connversationUpdate = {
+            noUnredMessage: 0,
             id: data.conversation.id,
             userSendLatestMessage: data.userSend ? {
               id: data.userSend.id,
@@ -383,15 +416,17 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
           }
           sortListConversations(connversationUpdate);
         } else {
-          const newMessage = {
-            profile: data.userSend,
-            message: data.message
+          if (data.conversation.id === params.id) {
+            const newMessage = {
+              profile: data.userSend,
+              message: data.message
+            }
+  
+            setListMessages((prevMessages: any) => {
+              const newMessages = [...prevMessages];
+              return addNewItemToListMessages(newMessages, newMessage);
+            });
           }
-
-          setListMessages((prevMessages: any) => {
-            const newMessages = [...prevMessages];
-            return addNewItemToListMessages(newMessages, newMessage);
-          });
 
           let connversationUpdatePartner = {
             id: data.conversation.id,
@@ -416,11 +451,30 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
         }
       });
     }
-    async function fetchMyAPI() {
-      await getListMessageDetail();
-    }
-    fetchMyAPI();
   }, [socket]);
+
+  useEffect(() => {
+    if (!isLastPage) {
+      getListMessageDetail();
+    }
+    window.addEventListener("close", (event) => {
+      SessionStorageManager.clearSessionStorageKeys(keySaveLocalStorage);
+    });
+    document.getElementById("scrollableDivBody")?.addEventListener("scroll", handleScroll, { passive: true, capture: true});
+    return () => {
+      document.getElementById("scrollableDivBody")?.removeEventListener("scroll", handleScroll);
+    }
+  }, [pageMessage]);
+
+  const handleScroll = (event: React.FormEvent<HTMLFormElement>) => {
+    const { scrollHeight, scrollTop, clientHeight } = event.target;
+    console.log(scrollHeight, scrollTop, clientHeight);
+    if (scrollHeight + scrollTop <= clientHeight + 10 && !isLastPage) {
+      console.log("load more")
+      setPageMessage((prevPage) => prevPage + 1);
+      setIsScrollTop(true);
+    }
+  }
 
   return (
     <section className="flex flex-col flex-auto border-l border-gray-800">
@@ -445,10 +499,18 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
           <Button onClick={handleCloseModalError}>Đóng</Button>
         </DialogActions>
       </Dialog>
+      {isLoading && (
+        <Backdrop
+          open={isLoading}
+          sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        >
+          <CircularProgress />
+        </Backdrop>
+      )}
       <HeaderChat />
       <div
-        className="chat-body p-4 flex-1 overflow-y-scroll"
-        id="scrollableDiv"
+        className="chat-body p-4 flex-1 overflow-y-scroll flex flex-col-reverse"
+        id="scrollableDivBody"
         ref={messagesEndRef}
       >
         {listMessages.length > 0 && renderedMessages}

@@ -6,6 +6,7 @@ import { SideBarChat } from "@/components/layouts/Messages/SideBarChat";
 import { useParams } from "next/navigation";
 import { Snackbar, Alert } from "@mui/material";
 import { Context } from "./context";
+import { APPLICATION_CONST } from "@/constants/application";
 
 interface conversation {
   id: string;
@@ -18,13 +19,14 @@ interface conversation {
 
 export default function Layout({ children }: { children: React.ReactNode }) {
     const [listConversations, setListConversations] = useState<Array<conversation>>([]);
-    const [pageConversation, setPageConversation] = useState<number>(1);
+    const  [pageConversation, setPageConversation] = useState<number>(1);
     const [errorMessage, setErrorMessage] = useState<string>("");
+    const [lastPage, setLastPage] = useState<boolean>(false);
     const params = useParams()
-    const conversationId = params.id;
+    const conversationId: string = params.id;
+    let firstLoadPage = 0;
 
     const sortListConversations: Function = (data: any) => {
-      let isCurrentConveration = listConversations.find((item: conversation) => item.id == data.id);
       setListConversations((prevConversations) => {
         const existingIndex = prevConversations.findIndex(
           (conversation) => conversation.id == data.id
@@ -32,20 +34,20 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     
         if (existingIndex !== -1) {
           const updatedConversations = prevConversations.filter(
-            (conversation, index) => index !== existingIndex
+            (conversation: conversation, index: number) => index !== existingIndex
           );
 
-          return [ 
+          return [
             {
               ...prevConversations[existingIndex],
               userSendLatestMessage: data.userSendLatestMessage,
               message: data.message,
-              noUnRedMessage: prevConversations[existingIndex].noUnredMessage + 1
+              noUnredMessage: data.noUnredMessage == 0 ? 0 :prevConversations[existingIndex].noUnredMessage + 1
             },
             ...updatedConversations
           ];
         } else {
-          return [data, ...prevConversations];
+          return [...data, ...prevConversations];
         }
       });
     }
@@ -57,8 +59,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     const getListConversation = async () => {
       try {
         let res = await services.conversation.listConversation(
-          pageConversation
+          listConversations.length
         );
+        if (res.data.length < APPLICATION_CONST.CONVERSATION_PAGE_SIZE) {
+          setLastPage(true);
+        }
+
         const conversationData = res.data.map((item: any) => {
           return {
             id: item.conversation.id,
@@ -80,18 +86,31 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             },
           };
         });
-        setListConversations(conversationData);
+        setListConversations(listConversations.length > 0 ? [...listConversations, ...conversationData] : conversationData);
       } catch (error: any) {
         setErrorMessage(error.message.slice());
       }
     };
+    const handleScroll = (event: React.FormEvent<HTMLFormElement>) => {
+      const { scrollHeight, scrollTop, clientHeight } = event.target;
+      if (scrollTop + clientHeight >= scrollHeight && !lastPage && firstLoadPage > 2) {
+        setPageConversation((prevPage) => prevPage + 1);
+      }
+      firstLoadPage ++;
+    }
 
     useEffect(() => {
-      getListConversation();
-    }, []);
+      if (!lastPage) {
+        getListConversation();
+      }
+      document.getElementById("scrollableDiv")?.addEventListener("scroll", handleScroll, { passive: true, capture: true});
+      return () => {
+        document.getElementById("scrollableDiv")?.removeEventListener("scroll", handleScroll);
+      }
+      }, [pageConversation]);
 
     return (
-      <main className="mb-4">
+      <main className="">
         <Snackbar open={errorMessage.length > 0} autoHideDuration={2000}>
           <Alert severity="error" sx={{ width: "100%" }}>
             {errorMessage}
@@ -104,15 +123,21 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <div className="bg-yellow-500 w-3 h-3 rounded-full mr-2" />
               <div className="bg-green-500 w-3 h-3 rounded-full mr-2" />
             </div>
-            <main className="flex-grow flex flex-row min-h-0">
-              {listConversations.length > 0 && (
-                <SideBarChat
-                  listConversations={listConversations}
-                  conversationId={conversationId}
-                />
-              )}
-              <Context.Provider value={value}>{children}</Context.Provider>
-            </main>
+            {/* <BottomScrollListener onBottom={handleContainerOnBottom}>
+              {(scrollRef) => ( */}
+                <div
+                  className="flex-grow flex flex-row min-h-0" id="scrollableDiv"
+                >
+                  {listConversations.length > 0 && (
+                    <SideBarChat
+                      listConversations={listConversations}
+                      conversationId={conversationId}
+                    />
+                  )}
+                  <Context.Provider value={value}>{children}</Context.Provider>
+                </div>
+              {/* )}
+            </BottomScrollListener> */}
           </div>
         </div>
       </main>

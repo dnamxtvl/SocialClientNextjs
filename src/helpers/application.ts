@@ -80,7 +80,7 @@ export const addNewItemToListMessages = (newMessages: any, newMessage: any) => {
         let mid = Math.floor((low + high) / 2);
         const midCreatedAt = new Date(newMessages[mid].message.createdAt);
         const newCreatedAt = new Date(newMessage.message.createdAt);
-        if (midCreatedAt < newCreatedAt ||(midCreatedAt.getTime() === newCreatedAt.getTime() && newMessages[mid].message.id < newMessage.message.id)) {
+        if (midCreatedAt > newCreatedAt ||(midCreatedAt.getTime() === newCreatedAt.getTime() && newMessages[mid].message.id > newMessage.message.id)) {
         low = mid + 1;
         } else {
         high = mid;
