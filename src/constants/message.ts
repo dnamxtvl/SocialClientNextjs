@@ -32,4 +32,17 @@ export const TEXT_FOR_LATEST_MESSAGE_CONTENT = {
     10: 'Nhóm mới!'
 }
 
+export const TYPE_TO_TEXT = {
+    1: 'Ảnh',
+    2: 'Video',
+    3: 'Audio',
+    4: 'File',
+    5: 'Link',
+    6: 'Cảm xúc',
+    7: 'Một số ảnh',
+    8: 'Một số file',
+    9: 'Một số video',
+    10: 'Nhóm',
+}
+
 export const MAX_MESSAGE_LENGTH_DISPLAY_LIST_CONTENT = 25

@@ -28,6 +28,9 @@ export const FRONTEND_URL = process.env.FRONT_END_URL;
 export const APPLICATION_CONST = {
     FILE_UPLOAD: {
         MAX_FILE_SIZE: 100 * 1024 * 1024,
+        IMAGE: {
+            MAX_IMAGE_SIZE: 10 * 1024 * 1024,
+        }
     },
     CONVERSATION_PAGE_SIZE: 15,
     MESSAGE: {

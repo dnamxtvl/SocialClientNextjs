@@ -7,8 +7,15 @@ import { CHAT_SERVICE_HOST } from "@/environments";
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import { formatBytes } from "@/helpers/application";
 
-export function ItemMessagePartner({ profile, messagePartners }: { profile: ProfileMessagePartner, messagePartners: ItemMessage }) {
-    return (
+export function ItemMessagePartner({ profile, messagePartners, onData }: { profile: ProfileMessagePartner, messagePartners: ItemMessage, onData: (data: any) => void }) {
+  const prepareReplyMessage = (message: ItemMessage, profile: ProfileMessagePartner) => {
+    onData({
+      message: message,
+      profile: profile
+    });
+  }  
+  
+  return (
       <div className="flex flex-row justify-start mt-4">
         <div className="messages text-sm text-gray-700 grid grid-flow-row gap-2">
           <div className="flex items-center group">
@@ -101,7 +108,7 @@ export function ItemMessagePartner({ profile, messagePartners }: { profile: Prof
               <MoreHorizIcon className="pr-[7px] pb-1" />
             </button>
             <button
-              type="button"
+              type="button" onClick={() => prepareReplyMessage(messagePartners, profile)}
               className="hidden group-hover:block flex flex-shrink-0 focus:outline-none mx-2 block rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-700 bg-gray-800 w-8 h-8 p-2"
             >
               <ReplyIcon className="pr-[7px] pb-1" />

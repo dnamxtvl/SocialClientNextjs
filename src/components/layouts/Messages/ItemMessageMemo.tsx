@@ -12,12 +12,17 @@ const ItemMessageMeMemo = React.memo(({ index, item, profilePartner }) => {
   );
 });
 
-const ItemMessagePartnerMemo = React.memo(({ index, item }) => {
+const ItemMessagePartnerMemo = React.memo(({ index, item, onDataFromMessageDetail }) => {
+  const handleDataFromMessagePartnerMemo = (data: any) => {
+    onDataFromMessageDetail(data);
+  }
+
   return (
     <ItemMessagePartner
       key={index}
       profile={item.profile}
       messagePartners={item.message}
+      onData={handleDataFromMessagePartnerMemo}
     />
   );
 });

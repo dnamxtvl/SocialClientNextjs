@@ -27,7 +27,7 @@ export interface ProfileMessagePartner {
 }
 
 export interface ItemMessage {
-    id: number,
+    id: string,
     type: number,
     content: string | Array<string> ,
     firstOfAvgTime: boolean,

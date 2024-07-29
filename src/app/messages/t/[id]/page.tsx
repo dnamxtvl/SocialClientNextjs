@@ -22,7 +22,7 @@ import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { ItemMessageMeMemo, ItemMessagePartnerMemo } from "@/components/layouts/Messages/ItemMessageMemo";
-import { STATUS, TYPE } from "@/constants/message";
+import { STATUS, TYPE, TYPE_TO_TEXT } from "@/constants/message";
 import { getTypeMessageForFile, addNewItemToListMessages, fileSorted } from "@/helpers/application";
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
@@ -39,6 +39,8 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Backdrop from "@mui/material/Backdrop";
 import { AxiosError } from "axios";
 import SessionStorageManager from "@/helpers/session-storage";
+import { ItemMessage, ProfileMessagePartner } from "@/types";
+import CloseIcon from '@mui/icons-material/Close';
 
 const { v4: uuidv4 } = require('uuid');
 const md5 = require('md5');
@@ -61,6 +63,8 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
   const [pageMessage, setPageMessage] = useState<number>(1);
   const [isLastPage, setIsLastPage] = useState<boolean>(false);
   const [isScrollTop, setIsScrollTop] = useState<boolean>(false);
+  const [replyMessage, setReplyMessage] = useState<ItemMessage|null>(null);
+  const [prePareReplyUsername, setPrePareReplyUsername] = useState<string>("");
   const dispatch = useDispatch();
   const router = useRouter();
   const { sortListConversations } = useContext(Context)
@@ -120,10 +124,19 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
   const validateFileSize = (files: Array<File>) => {
     let isMaxSize = false;
     for (const file of files) {
+      if (file.type.startsWith('image/')) {
+        if (file.size > APPLICATION_CONST.FILE_UPLOAD.IMAGE.MAX_IMAGE_SIZE) {
+          setOpenModalError(true);
+          setModalErrorTitle("Vượt quá dung lượng tải lên cho phép!");
+          setModalErrorContent("Ảnh " + file.name + " có dung lượng vượt quá 10mb");
+          isMaxSize = true;
+          break;
+        }
+      }
       if (file.size > APPLICATION_CONST.FILE_UPLOAD.MAX_FILE_SIZE) {
         setOpenModalError(true);
         setModalErrorTitle("Vượt quá dung lượng tải lên cho phép!");
-        setModalErrorContent(file.name + " có dung lơn vượt quá 100mb");
+        setModalErrorContent(file.name + " có dung lượng vượt quá 100mb");
         isMaxSize = true;
         break;
       } 
@@ -265,6 +278,9 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
     formData.append('message', message);
     formData.append('messageUUId', messageUUId);
     formData.append('fileUUIds', fileUUIds.length > 0 ? fileUUIds.join() : "");
+    if (replyMessage) {
+      formData.append('replyMessageId', replyMessage.id);
+    }
 
     //save sending message to local storage
     try {
@@ -315,6 +331,14 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
       );
     }
   };
+
+  const handleDataFromMessageDetail = (data: {
+    message: ItemMessage,
+    profile: ProfileMessagePartner
+  }) => {
+    setReplyMessage(data.message);
+    setPrePareReplyUsername(data.profile.firstName + " " + data.profile.lastName);
+  };
   
   const renderedMessages = useMemo(() => {
     return listMessages.map((item: any, index: number) => (
@@ -325,7 +349,7 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
           </p>
         )}
         {item.profile.id !== authUser?.id ? (
-          <ItemMessagePartnerMemo index={index} item={item} />
+          <ItemMessagePartnerMemo index={index} item={item} onDataFromMessageDetail={handleDataFromMessageDetail} />
         ) : (
           <ItemMessageMeMemo index={index} item={item} profilePartner={item.profile} />
         )}
@@ -343,6 +367,11 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
   const handleCloseModalError = () => {
     setOpenModalError(false);
     clearMessage();
+  }
+
+  const cancelReplyMessage = () => {
+    setReplyMessage(null);
+    setPrePareReplyUsername("");
   }
 
   useEffect(() => {
@@ -515,7 +544,23 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
       >
         {listMessages.length > 0 && renderedMessages}
       </div>
-      <div className="chat-footer flex-none">
+      <div className={`chat-footer flex-none ${replyMessage ? 'border border-blue-950' : ''}`}>
+        {replyMessage && (
+          <div className="flex-col flex w-full p-4 pt-0 pb-0">
+            <div className="reply-title flex flex-grow">
+              <p className="text-left p-4 font-bold leading-3 w-full">Replying to {prePareReplyUsername}</p>
+              <CloseIcon onClick={() => cancelReplyMessage()} className="text-right cursor-pointer"/>
+            </div>
+            {replyMessage.type == TYPE.TEXT ? (
+              <p className="lg:max-w-md text-gray-200 pl-4 pb-0 flex-grow flex w-full text-sm">
+                {replyMessage.content}
+              </p>
+            ) :
+            (
+              <p className="lg:max-w-md text-gray-200 pl-4 flex-grow flex w-full text-sm">{TYPE_TO_TEXT[replyMessage.type]}</p>
+            )}
+          </div>
+        )}
         <div className="flex flex-row items-center p-4 pt-0">
           <div className="flex-grow flex mt-auto mb-2">
             <button
