@@ -17,7 +17,8 @@ const API_CONST = {
         VIEW: 'chat/user/view-conversation/'
     },
     MESSAGE: {
-        SEND_MESSAGE: 'chat/send-message/'
+        SEND_MESSAGE: 'chat/send-message/',
+        SEEN_MESSAGE: 'chat/seen-message/'
     }
 };
 

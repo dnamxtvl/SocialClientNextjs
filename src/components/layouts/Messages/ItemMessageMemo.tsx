@@ -2,12 +2,17 @@ import React from 'react';
 import { ItemMessageMe } from './ItemMessageMe';
 import { ItemMessagePartner } from './ItemMessagePartner';
 
-const ItemMessageMeMemo = React.memo(({ index, item, profilePartner }) => {
+const ItemMessageMeMemo = React.memo(({ index, item, onDataFromMessageDetail }) => {
+  const handleDataFromMessagePartnerMemo = (data: any) => {
+    onDataFromMessageDetail(data);
+  }
+
   return (
     <ItemMessageMe
       key={index}
-      profile={profilePartner}
+      profile={item.profile}
       messagesMe={item.message}
+      onData={handleDataFromMessagePartnerMemo}
     />
   );
 });

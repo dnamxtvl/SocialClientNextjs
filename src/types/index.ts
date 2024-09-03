@@ -35,6 +35,8 @@ export interface ItemMessage {
     userSender?: ProfileMessagePartner | null,
     status?: number,
     percentUpload?: number,
+    parent?: ItemMessage | null,
+    seens?: [] | Array<UserSeen>
     createdAt: string,
 }
 
@@ -60,4 +62,10 @@ export interface SendMessageParams {
     messageUUId?: string,
     files?: Array<File>,
     fileUUIds?: Array<string>
+}
+
+export interface UserSeen {
+    userSeenId: string,
+    userSeen: ProfileMessagePartner,
+    createdAt: string
 }

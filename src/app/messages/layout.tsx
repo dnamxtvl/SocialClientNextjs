@@ -23,7 +23,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     const [errorMessage, setErrorMessage] = useState<string>("");
     const [lastPage, setLastPage] = useState<boolean>(false);
     const params = useParams()
-    const conversationId: string = params.id;
+    const conversationId: string = params.id.toString();
     let firstLoadPage = 0;
 
     const sortListConversations: Function = (data: any) => {
@@ -52,8 +52,19 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       });
     }
 
+    const seenMessageOfConversation: Function = (conversationId: string) => {
+      setListConversations((prevConversations) =>
+        prevConversations.map((conversation: any) => 
+          conversation.id === conversationId 
+            ? { ...conversation, noUnredMessage: 0 } 
+            : conversation
+        )
+      );
+    };
+
     const value = {
-      sortListConversations
+      sortListConversations,
+      seenMessageOfConversation,
     }
  
     const getListConversation = async () => {

@@ -103,7 +103,6 @@ const get: Function = async (
 };
 
 const post: Function = async (p_route: string, p_body: Object) => {
-  alert(123);
   console.log(p_body);
   console.log(typeof p_body.files);
   const headersPost = {

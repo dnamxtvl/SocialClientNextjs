@@ -11,14 +11,16 @@ interface AuthState {
     token: string | null,
     isLogined: string | boolean,
     userProfile: UserProfile | null,
-    tokenExpriredToast: boolean
+    tokenExpriredToast: boolean,
+    isAutoFocusInputSendMessage: boolean,
 }
 
 const initialState: AuthState = {
     token: getCookie('token') ?? null,
     isLogined: getCookie('isLogined') ?? false,
     userProfile: getCookie('userProfile') ? JSON.parse(getCookie('userProfile') as string) : null,
-    tokenExpriredToast: false
+    tokenExpriredToast: false,
+    isAutoFocusInputSendMessage: false,
 };
 
 const authSlice = createSlice({
@@ -40,9 +42,12 @@ const authSlice = createSlice({
         },
         setTokenExpriredToast(state, action: PayloadAction<boolean>) {
             state.tokenExpriredToast = action.payload;
-        }
+        },
+        setIsAutoFocusInputSendMessage(state, action: PayloadAction<boolean>) {
+            state.isAutoFocusInputSendMessage = action.payload;
+        },
     },
 });
 
-export const { setToken, clearToken, setProfile, setTokenExpriredToast } = authSlice.actions;
+export const { setToken, clearToken, setProfile, setTokenExpriredToast, setIsAutoFocusInputSendMessage } = authSlice.actions;
 export default authSlice.reducer;

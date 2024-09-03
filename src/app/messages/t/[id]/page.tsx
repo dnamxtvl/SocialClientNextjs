@@ -32,7 +32,7 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import { APPLICATION_CONST } from "@/constants/application";
 import HTTP_CODE from "@/constants/http-code";
-import { setTokenExpriredToast } from "@/redux/slices/AuthSlice";
+import { setTokenExpriredToast, setIsAutoFocusInputSendMessage } from "@/redux/slices/AuthSlice";
 import { Context } from "../../context";
 import { useContext } from 'react'
 import CircularProgress from "@mui/material/CircularProgress";
@@ -65,9 +65,12 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
   const [isScrollTop, setIsScrollTop] = useState<boolean>(false);
   const [replyMessage, setReplyMessage] = useState<ItemMessage|null>(null);
   const [prePareReplyUsername, setPrePareReplyUsername] = useState<string>("");
+  const [enableSeen, setEnableSeen] = useState<boolean>(false);
+  const refInputText = useRef(null);
+  const [isFollowingInputText, setIsFollowingInputText] = useState<boolean>(false);
   const dispatch = useDispatch();
   const router = useRouter();
-  const { sortListConversations } = useContext(Context)
+  const { sortListConversations, seenMessageOfConversation } = useContext(Context)
   const removeToken = () => {
     dispatch(clearToken());
     deleteCookie("isLogined");
@@ -102,13 +105,14 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
             firstOfAvgTime: item.message.firstOfAvgTime,
             status: item.message.status ?? STATUS.SENT,
             percentUpload: item.message.percentUpload ?? 0,
+            parent: item.message.parent,
+            seens: item.message.seens,
             createdAt: item.message.createdAt,
           },
         };
       });
 
       const listSendingMessage = SessionStorageManager.getSessionStorageItemsWithPrefix(keySaveLocalStorage) ?? [];
-      console.log(listSendingMessage);
       let listMessageConvert = listMessages.length > 0 ? [...listMessages, ...messageData] : messageData;;
       if (listSendingMessage.length >  0) {
         listMessageConvert = [...listMessageConvert, ...listSendingMessage].sort((a, b) => new Date(b.message.createdAt) - new Date(a.message.createdAt));
@@ -180,6 +184,8 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
           firstOfAvgTime: firstOfAvg,
           status: STATUS.SENDING,
           percentUpload: 0,
+          parent: replyMessage ?? null,
+          seens: [],
           createdAt: moment(new Date()).format('YYYY-MM-DD HH:mm:ss.SSS'),
         },
       };
@@ -226,6 +232,8 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
             firstOfAvgTime: firstOfAvgTimeFile,
             status: STATUS.SENDING,
             percentUpload: 0,
+            parent: replyMessage ?? null,
+            seens: [],
             createdAt: moment(new Date()).format('YYYY-MM-DD HH:mm:ss.SSS'),
           },
         }
@@ -257,6 +265,8 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
               userlatestSeen: null,
               firstOfAvgTime: firstOfAvgTimeFile,
               status: STATUS.SENDING,
+              parent: replyMessage ?? null,
+              seens: [],
               createdAt: moment(new Date()).add(rangerMiniSecond, 'milliseconds').format('YYYY-MM-DD HH:mm:ss.SSS'),
             },
           }
@@ -273,6 +283,7 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
     }
 
     clearMessage();
+    cancelReplyMessage();
     scrollToButtonMessage();
 
     formData.append('message', message);
@@ -289,6 +300,8 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
       setErrorMessage(error.response?.data?.errors ?? "Đã xảy ra lỗi!");
       if (error.response?.status == HTTP_CODE.UNAUTHORIZED) removeToken();
     }
+
+    setEnableSeen(false);
   };
 
   const clearMessage = () => {
@@ -344,14 +357,14 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
     return listMessages.map((item: any, index: number) => (
       <div key={index}>
         {item.message.firstOfAvgTime && (
-          <p className="p-4 text-center text-sm text-gray-500">
+          <p className="p-4 pb-0 text-center text-sm text-gray-500">
             {moment(item.message.createdAt, "YYYY-MM-DD HH:mm:ss").format("DD MMM YYYY, HH:mm")}
           </p>
         )}
         {item.profile.id !== authUser?.id ? (
           <ItemMessagePartnerMemo index={index} item={item} onDataFromMessageDetail={handleDataFromMessageDetail} />
         ) : (
-          <ItemMessageMeMemo index={index} item={item} profilePartner={item.profile} />
+          <ItemMessageMeMemo index={index} item={item} onDataFromMessageDetail={handleDataFromMessageDetail} />
         )}
       </div>
     ));
@@ -450,11 +463,28 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
               profile: data.userSend,
               message: data.message
             }
+            newMessage.message.seens = [];
   
             setListMessages((prevMessages: any) => {
-              const newMessages = [...prevMessages];
+              const newMessages = prevMessages.map((item: any) => {
+                const updatedSeens = item.message.seens.filter(
+                  (seen: any) => seen.userSeenId != userSendId
+                );
+  
+                const seensWithNewSeen = updatedSeens;
+  
+                return {
+                  ...item,
+                  message: { ...item.message, seens: seensWithNewSeen, status: STATUS.SEEN },
+                };
+              });
               return addNewItemToListMessages(newMessages, newMessage);
             });
+
+            setEnableSeen(true);
+            if (store.getState().auth.isAutoFocusInputSendMessage) {
+              seenAction(data.message.id);
+            }
           }
 
           let connversationUpdatePartner = {
@@ -479,6 +509,31 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
           sortListConversations(connversationUpdatePartner);
         }
       });
+
+      socket.on('seenMessage', (data: any) => {
+        const userSeenId: string = data.userSeen.userSeenId;
+        const userSeen = data.userSeen;
+        const messageId = data.messageId ?? '';
+        if (authUser?.id != userSeenId) {
+          setListMessages((prevListMessages: any) => {
+            return prevListMessages.map((item: any) => {
+              const updatedSeens = item.message.seens.filter(
+                (seen: any) => seen.userSeenId != userSeenId
+              );
+
+              // Add userSeen only for the message with matching ID
+              const seensWithNewSeen = messageId && item.message.id === messageId
+                ? [...updatedSeens, userSeen]
+                : updatedSeens;
+
+              return {
+                ...item,
+                message: { ...item.message, seens: seensWithNewSeen, status: STATUS.SEEN },
+              };
+            });
+          }); 
+        }
+      });
     }
   }, [socket]);
 
@@ -489,21 +544,78 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
     window.addEventListener("close", (event) => {
       SessionStorageManager.clearSessionStorageKeys(keySaveLocalStorage);
     });
-    document.getElementById("scrollableDivBody")?.addEventListener("scroll", handleScroll, { passive: true, capture: true});
-    return () => {
-      document.getElementById("scrollableDivBody")?.removeEventListener("scroll", handleScroll);
+    const scrollableDiv = document.getElementById("scrollableDivBody");
+    const handleClose = (event) => {
+      SessionStorageManager.clearSessionStorageKeys(keySaveLocalStorage);
+    };
+
+    if (pageMessage == 1) {
+      window.addEventListener("close", handleClose);
+      scrollableDiv?.addEventListener("scroll", handleScroll, { passive: true, capture: true });
+
+      return () => {
+        window.removeEventListener("close", handleClose);
+        scrollableDiv?.removeEventListener("scroll", handleScroll);
+      };
     }
   }, [pageMessage]);
 
   const handleScroll = (event: React.FormEvent<HTMLFormElement>) => {
     const { scrollHeight, scrollTop, clientHeight } = event.target;
-    console.log(scrollHeight, scrollTop, clientHeight);
-    if (scrollHeight + scrollTop <= clientHeight + 10 && !isLastPage) {
+    //console.log(scrollHeight, scrollTop, clientHeight);
+    if (scrollHeight + scrollTop <= (pageMessage == 1 ? clientHeight + 1: clientHeight) && !isLastPage) {
       console.log("load more")
       setPageMessage((prevPage) => prevPage + 1);
       setIsScrollTop(true);
     }
   }
+
+  const sendMessageByEnter = () => {
+    if (!(selectedFiles.length > 0 || message.length > 0)) {
+      return ;
+    }
+    
+    sendMessage();
+  }
+
+  const seenMessageConversation = async () => {
+    const latestMessage = listMessages.length > 0 ? listMessages[0] : null;
+    if (!latestMessage || !latestMessage.message?.id || latestMessage.profile.id === authUser?.id || !enableSeen) {
+      console.log("bi chan lai");
+      return ;
+    }
+
+    await seenAction(latestMessage.message?.id);
+  }
+
+  const seenAction = async (messageId: string) => {
+    try {
+      await services.message.seenMessageConversation(params.id, { messageId: messageId });
+      seenMessageOfConversation(params.id);
+      setEnableSeen(false);
+    } catch (error: any) {
+      setErrorMessage(error.message.slice());
+    }
+  }
+
+  useEffect(() => {
+    const handleOutSideClick = (event: React.FormEvent<HTMLFormElement>) => {
+      if (!refInputText.current?.contains(event.target)) {
+        let autoFocusInputText = store.getState().auth.isAutoFocusInputSendMessage;
+        if (autoFocusInputText) {
+          store.dispatch(setIsAutoFocusInputSendMessage(false));
+        }
+      } else {
+        store.dispatch(setIsAutoFocusInputSendMessage(true));
+      }
+    };
+
+    window.addEventListener("mousedown", handleOutSideClick);
+
+    return () => {
+      window.removeEventListener("mousedown", handleOutSideClick);
+    };
+  }, [refInputText]);
 
   return (
     <section className="flex flex-col flex-auto border-l border-gray-800">
@@ -538,7 +650,7 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
       )}
       <HeaderChat />
       <div
-        className="chat-body p-4 flex-1 overflow-y-scroll flex flex-col-reverse"
+        className="chat-body p-4 pb-5 flex-1 overflow-y-scroll flex flex-col-reverse"
         id="scrollableDivBody"
         ref={messagesEndRef}
       >
@@ -631,11 +743,18 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
             )}
             <div className="w-full flex">
               <input
+                onClick={seenMessageConversation}
+                onKeyDown={(e) => { 
+                  if (e.key === "Enter") {
+                    sendMessageByEnter();
+                  } 
+                }} 
                 className="rounded-full py-2 pl-3 pr-10 w-full border border-gray-800 focus:border-gray-700 bg-gray-800 focus:bg-gray-900 focus:outline-none text-gray-200 focus:shadow-md transition duration-300 ease-in"
                 type="text"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Aa"
+                ref={refInputText}
               />
               <button
                 type="button"
