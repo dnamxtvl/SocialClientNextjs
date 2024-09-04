@@ -67,7 +67,6 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
   const [prePareReplyUsername, setPrePareReplyUsername] = useState<string>("");
   const [enableSeen, setEnableSeen] = useState<boolean>(false);
   const refInputText = useRef(null);
-  const [isFollowingInputText, setIsFollowingInputText] = useState<boolean>(false);
   const dispatch = useDispatch();
   const router = useRouter();
   const { sortListConversations, seenMessageOfConversation } = useContext(Context)
@@ -390,7 +389,9 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
   useEffect(() => {
     if (socket) {
       socket.emit('joinRoom', {roomId: authUser?.id});
-
+      socket.off('sendMessageDone');
+      socket.off('uploadFilesProgress');
+      socket.off('seenMessage');
       socket.on('uploadFilesProgress', (data: any) => {
         const userSendId: string = data.userSend.id;
         if (userSendId === authUser?.id) {
@@ -415,6 +416,7 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
       });
 
       socket.on('sendMessageDone', (data: any) => {
+        let conversationIdParam = params.id;
         const userSendId: string = data.userSend.id;
         if (userSendId === authUser?.id) {
           let messageUUId: string = data.messageUUId;
@@ -458,7 +460,7 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
           }
           sortListConversations(connversationUpdate);
         } else {
-          if (data.conversation.id === params.id) {
+          if (data.conversation.id === conversationIdParam) {
             const newMessage = {
               profile: data.userSend,
               message: data.message
@@ -514,7 +516,7 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
         const userSeenId: string = data.userSeen.userSeenId;
         const userSeen = data.userSeen;
         const messageId = data.messageId ?? '';
-        if (authUser?.id != userSeenId) {
+        if (authUser?.id != userSeenId && data.conversationId === params.id) {
           setListMessages((prevListMessages: any) => {
             return prevListMessages.map((item: any) => {
               const updatedSeens = item.message.seens.filter(
@@ -589,6 +591,7 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
   }
 
   const seenAction = async (messageId: string) => {
+    console.log(params.id);
     try {
       await services.message.seenMessageConversation(params.id, { messageId: messageId });
       seenMessageOfConversation(params.id);
