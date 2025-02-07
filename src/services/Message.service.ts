@@ -18,4 +18,9 @@ export default class MessageService {
         let route = CHAT_SERVICE_API_HOST + API_CONST.MESSAGE.SEEN_MESSAGE + conversationId;
         return await api.post(route, params);
     }
+
+    reactionMessage : Function = async (messageId: string, params: Object) => {
+        let route = CHAT_SERVICE_API_HOST + API_CONST.MESSAGE.REACTION_MESSAGE + messageId;
+        return await api.post(route, params);
+    }
 }

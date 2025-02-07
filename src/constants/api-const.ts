@@ -18,7 +18,8 @@ const API_CONST = {
     },
     MESSAGE: {
         SEND_MESSAGE: 'chat/send-message/',
-        SEEN_MESSAGE: 'chat/seen-message/'
+        SEEN_MESSAGE: 'chat/seen-message/',
+        REACTION_MESSAGE: 'chat/reaction-message/',
     }
 };
 

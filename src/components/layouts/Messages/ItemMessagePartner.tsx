@@ -9,8 +9,48 @@ import LinkIcon from '@mui/icons-material/Link';
 import Tooltip from '@mui/material/Tooltip';
 import moment from "moment";
 import { store } from "@/redux/store";
+import services from "@/services/Index";
+import { useState } from "react";
+import EmojiPicker, { Emoji, EmojiClickData } from "emoji-picker-react";
+import Box from '@mui/material/Box';
+import { Alert, ClickAwayListener, Snackbar } from "@mui/material";
 
 export function ItemMessagePartner({ profile, messagePartners, onData }: { profile: ProfileMessagePartner, messagePartners: ItemMessage, onData: (data: any) => void }) {
+  const [openEmojiReaction, setOpenEmojiReaction] = useState<boolean>(false);
+  const [showEmojiReactionMessageId, setShowEmojiReactionMessageId] = useState<string>("");
+  const [errorMessage, setErrorMessage] = useState<string>("");
+
+  const handleCloseEmojiReactionAway = () => {
+    setShowEmojiReactionMessageId("");
+    setOpenEmojiReaction(false);
+  }
+
+  const handleClickShowEmojiReaction = (messageId: string) => {
+    if (openEmojiReaction) {
+      handleCloseEmojiReactionAway();
+    } else {
+      setShowEmojiReactionMessageId(messageId);
+      setOpenEmojiReaction(true);
+    }
+  }
+
+  const handleEmojiReactionClick = async (emojiData: EmojiClickData, event: MouseEvent) => {
+    try {
+      await services.message.reactionMessage(messagePartners.id, { reaction: emojiData.unified });
+      handleCloseEmojiReactionAway();
+    } catch (error: any) {
+      setErrorMessage(error.message.slice());
+    }
+  }
+
+  const hiddenMoreOptionMessage = (messageId: string) => {
+    if (messageId == showEmojiReactionMessageId && openEmojiReaction) {
+      return "";
+    }
+
+    return "hidden"
+  }
+  
   const prepareReplyMessage = (message: ItemMessage, profile: ProfileMessagePartner) => {
     onData({
       message: message,
@@ -37,6 +77,11 @@ export function ItemMessagePartner({ profile, messagePartners, onData }: { profi
   
   return (
     <div className="flex flex-row justify-between mt-5">
+      <Snackbar open={errorMessage.length > 0} autoHideDuration={2000}>
+        <Alert severity="error" sx={{ width: "100%" }}>
+          {errorMessage}
+        </Alert>
+      </Snackbar>
       <div className="messages text-sm text-gray-700 grid grid-flow-row gap-2">
         <div className="flex items-center group">
           {profile.avatar == null && (
@@ -191,23 +236,67 @@ export function ItemMessagePartner({ profile, messagePartners, onData }: { profi
           )}
           <button
             type="button"
-            className="hidden group-hover:block flex flex-shrink-0 focus:outline-none mt-auto mx-2 block rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-700 bg-gray-800 w-8 h-8 p-2"
+            className={
+              hiddenMoreOptionMessage(messagePartners.id) +
+              ` group-hover:block flex flex-shrink-0 focus:outline-none mt-auto mx-2 block rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-700 bg-gray-800 w-8 h-8 p-2 cursor-pointer`
+            }
           >
             <MoreHorizIcon className="pr-[7px] pb-1" />
           </button>
           <button
             type="button"
             onClick={() => prepareReplyMessage(messagePartners, profile)}
-            className="hidden group-hover:block flex flex-shrink-0 focus:outline-none mt-auto mx-2 block rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-700 bg-gray-800 w-8 h-8 p-2"
+            className={
+              hiddenMoreOptionMessage(messagePartners.id) +
+              ` group-hover:block flex flex-shrink-0 focus:outline-none mt-auto mx-2 block rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-700 bg-gray-800 w-8 h-8 p-2 cursor-pointer`
+            }
           >
             <ReplyIcon className="pr-[7px] pb-1" />
           </button>
-          <button
+          {/* <button
             type="button"
             className="hidden group-hover:block flex flex-shrink-0 focus:outline-none mt-auto mx-2 block rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-700 bg-gray-800 w-8 h-8 p-2"
           >
             <AddReactionIcon className="pr-[7px] pb-1" />
-          </button>
+          </button> */}
+          <div
+            className={
+              hiddenMoreOptionMessage(messagePartners.id) +
+              ` group-hover:block flex flex-shrink-0 focus:outline-none mt-auto mx-2 block rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-700 bg-gray-800 w-8 h-8 p-2 cursor-pointer`
+            }
+          >
+            <ClickAwayListener
+              mouseEvent="onMouseDown"
+              touchEvent="onTouchStart"
+              onClickAway={handleCloseEmojiReactionAway}
+            >
+              <Box sx={{ position: "relative" }}>
+                <AddReactionIcon
+                  className="pr-[7px] pb-1"
+                  onClick={() =>
+                    handleClickShowEmojiReaction(messagePartners.id)
+                  }
+                />
+                {openEmojiReaction &&
+                showEmojiReactionMessageId &&
+                showEmojiReactionMessageId == messagePartners.id ? (
+                  <Box>
+                    <EmojiPicker
+                      reactionsDefaultOpen={true}
+                      onEmojiClick={handleEmojiReactionClick}
+                      lazyLoadEmojis={true}
+                      style={{
+                        position: "absolute",
+                        bottom: "3rem",
+                        right: "0",
+                        backgroundColor: "white",
+                      }}
+                    />
+                  </Box>
+                ) : null}
+              </Box>
+            </ClickAwayListener>
+          </div>
         </div>
       </div>
       {messagePartners.status == STATUS.SEEN && (
@@ -245,16 +334,6 @@ export function ItemMessagePartner({ profile, messagePartners, onData }: { profi
               ))}
         </div>
       )}
-
-      {/* if (item.userlatestSeen) {
-                        return <div key={index} className="w-5 h-5 relative flex flex-shrink-0 mr-0 ml-auto mt-auto">
-                                    <img
-                                        className="shadow-md rounded-full w-full h-full object-cover"
-                                        src={profile.avatar}
-                                        alt=""
-                                    />
-                                </div>
-                    } */}
     </div>
   );
 }

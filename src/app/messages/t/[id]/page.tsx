@@ -41,6 +41,9 @@ import { AxiosError } from "axios";
 import SessionStorageManager from "@/helpers/session-storage";
 import { ItemMessage, ProfileMessagePartner } from "@/types";
 import CloseIcon from '@mui/icons-material/Close';
+import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
+import { ClickAwayListener } from '@mui/base/ClickAwayListener';
+import Box from '@mui/material/Box';
 
 const { v4: uuidv4 } = require('uuid');
 const md5 = require('md5');
@@ -305,6 +308,7 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
 
   const clearMessage = () => {
     setMessage("");
+    document.getElementById("messageInputText").value = '';
     setSelectedFiles([]);
   }
 
@@ -539,6 +543,21 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
     }
   }, [socket]);
 
+  const [openEmojiMessage, setOpenEmojiMessage] = React.useState(false);
+
+  const handleClickShowEmojiMessage = () => {
+    setOpenEmojiMessage((prev) => !prev);
+    let messageText = document.getElementById("messageInputText").value;
+    setMessage(messageText);
+  };
+
+  const handleClickShowEmojiMessageAway = () => {
+    setOpenEmojiMessage(false);
+    let messageText = document.getElementById("messageInputText").value;
+    setMessage(messageText);
+  };
+
+
   useEffect(() => {
     if (!isLastPage) {
       getListMessageDetail();
@@ -601,6 +620,12 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
     }
   }
 
+  const handleEmojiMessageClick = (emojiData: EmojiClickData, event: MouseEvent) => {
+    let currentValue = document.getElementById("messageInputText").value;
+    currentValue = currentValue + emojiData.emoji;
+    document.getElementById("messageInputText").value = currentValue;
+  };
+
   useEffect(() => {
     const handleOutSideClick = (event: React.FormEvent<HTMLFormElement>) => {
       if (!refInputText.current?.contains(event.target)) {
@@ -659,20 +684,30 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
       >
         {listMessages.length > 0 && renderedMessages}
       </div>
-      <div className={`chat-footer flex-none ${replyMessage ? 'border border-blue-950' : ''}`}>
+      <div
+        className={`chat-footer flex-none ${
+          replyMessage ? "border border-blue-950" : ""
+        }`}
+      >
         {replyMessage && (
           <div className="flex-col flex w-full p-4 pt-0 pb-0">
             <div className="reply-title flex flex-grow">
-              <p className="text-left p-4 font-bold leading-3 w-full">Replying to {prePareReplyUsername}</p>
-              <CloseIcon onClick={() => cancelReplyMessage()} className="text-right cursor-pointer"/>
+              <p className="text-left p-4 font-bold leading-3 w-full">
+                Replying to {prePareReplyUsername}
+              </p>
+              <CloseIcon
+                onClick={() => cancelReplyMessage()}
+                className="text-right cursor-pointer"
+              />
             </div>
             {replyMessage.type == TYPE.TEXT ? (
               <p className="lg:max-w-md text-gray-200 pl-4 pb-0 flex-grow flex w-full text-sm">
                 {replyMessage.content}
               </p>
-            ) :
-            (
-              <p className="lg:max-w-md text-gray-200 pl-4 flex-grow flex w-full text-sm">{TYPE_TO_TEXT[replyMessage.type]}</p>
+            ) : (
+              <p className="lg:max-w-md text-gray-200 pl-4 flex-grow flex w-full text-sm">
+                {TYPE_TO_TEXT[replyMessage.type]}
+              </p>
             )}
           </div>
         )}
@@ -746,25 +781,45 @@ export default function MessageDetail({ params }: { params: { id: string } }) {
             )}
             <div className="w-full flex">
               <input
+              id="messageInputText"
                 onClick={seenMessageConversation}
-                onKeyDown={(e) => { 
+                onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     sendMessageByEnter();
-                  } 
-                }} 
+                  }
+                }}
                 className="rounded-full py-2 pl-3 pr-10 w-full border border-gray-800 focus:border-gray-700 bg-gray-800 focus:bg-gray-900 focus:outline-none text-gray-200 focus:shadow-md transition duration-300 ease-in"
                 type="text"
-                value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Aa"
                 ref={refInputText}
               />
-              <button
-                type="button"
-                className="top-0 ml-[-33px] right-0 mt-2 mr-3 flex flex-shrink-0 focus:outline-none block text-blue-600 hover:text-blue-700 w-6 h-6"
+              <div
+                className="top-0 ml-[-33px] right-0 mt-2 mr-3 flex flex-shrink-0 focus:outline-none block cursor-pointer text-blue-600 hover:text-blue-700 w-6 h-6"
               >
-                <InsertEmoticonIcon />
-              </button>
+                <ClickAwayListener
+                  mouseEvent="onMouseDown"
+                  touchEvent="onTouchStart"
+                  onClickAway={handleClickShowEmojiMessageAway}
+                >
+                  <Box sx={{ position: "relative" }}>
+                    <InsertEmoticonIcon onClick={handleClickShowEmojiMessage} />
+                    {openEmojiMessage ? (
+                      <Box>
+                        <EmojiPicker
+                          onEmojiClick={handleEmojiMessageClick}
+                          lazyLoadEmojis={true}
+                          style={{
+                            position: "absolute",
+                            bottom: "3rem",
+                            right: "0",
+                          }}
+                        />
+                      </Box>
+                    ) : null}
+                  </Box>
+                </ClickAwayListener>
+              </div>
             </div>
           </div>
           {selectedFiles.length === 0 && message.length === 0 && (

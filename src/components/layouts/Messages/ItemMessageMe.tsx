@@ -12,6 +12,10 @@ import LinkIcon from '@mui/icons-material/Link';
 import DoneIcon from '@mui/icons-material/Done';
 import Tooltip from '@mui/material/Tooltip';
 import moment from "moment";
+import EmojiPicker, { Emoji, EmojiClickData } from "emoji-picker-react";
+import { Alert, ClickAwayListener, Snackbar } from "@mui/material";
+import { useState } from "react";
+import services from "@/services/Index";
 
 interface CircularProgressWithLabelProps extends CircularProgressProps {
   value: number;
@@ -48,6 +52,41 @@ const  CircularProgressWithLabel: React.FC<CircularProgressWithLabelProps> = (pr
 }
 
 export function ItemMessageMe({ profile, messagesMe , onData}: { profile: ProfileMessagePartner, messagesMe: ItemMessage, onData: (data: any) => void }) {
+  const [openEmojiReaction, setOpenEmojiReaction] = useState<boolean>(false);
+  const [showEmojiReactionMessageId, setShowEmojiReactionMessageId] = useState<string>("");
+  const [errorMessage, setErrorMessage] = useState<string>("");
+
+  const handleCloseEmojiReactionAway = () => {
+    setShowEmojiReactionMessageId("");
+    setOpenEmojiReaction(false);
+  }
+
+  const handleClickShowEmojiReaction = (messageId: string) => {
+    if (openEmojiReaction) {
+      handleCloseEmojiReactionAway();
+    } else {
+      setShowEmojiReactionMessageId(messageId);
+      setOpenEmojiReaction(true);
+    }
+  }
+
+  const handleEmojiReactionClick = async (emojiData: EmojiClickData, event: MouseEvent) => {
+    try {
+      await services.message.reactionMessage(messagesMe.id, { reaction: emojiData.unified });
+      handleCloseEmojiReactionAway();
+    } catch (error: any) {
+      setErrorMessage(error.message.slice());
+    }
+  }
+
+  const hiddenMoreOptionMessage = (messageId: string) => {
+    if (messageId == showEmojiReactionMessageId && openEmojiReaction) {
+      return "";
+    }
+
+    return "hidden"
+  }
+
   const prepareReplyMessage = (message: ItemMessage, profile: ProfileMessagePartner) => {
     onData({
       message: message,
@@ -74,6 +113,11 @@ export function ItemMessageMe({ profile, messagesMe , onData}: { profile: Profil
 
   return (
     <div className="flex flex-row justify-end mt-6">
+      <Snackbar open={errorMessage.length > 0} autoHideDuration={2000}>
+        <Alert severity="error" sx={{ width: "100%" }}>
+          {errorMessage}
+        </Alert>
+      </Snackbar>
       <div className="messages text-sm text-white grid grid-flow-row gap-2">
         <div className="flex items-center flex-row-reverse group">
           {messagesMe.status === STATUS.SENDING && (
@@ -101,10 +145,9 @@ export function ItemMessageMe({ profile, messagesMe , onData}: { profile: Profil
                         " " +
                         item.userSeen.lastName +
                         " đã xem lúc " +
-                        moment(
-                          item.createdAt,
-                          "YYYY-MM-DD HH:mm:ss"
-                        ).format("DD MMM YYYY, HH:mm")
+                        moment(item.createdAt, "YYYY-MM-DD HH:mm:ss").format(
+                          "DD MMM YYYY, HH:mm"
+                        )
                       }
                     >
                       <img
@@ -268,23 +311,48 @@ export function ItemMessageMe({ profile, messagesMe , onData}: { profile: Profil
           )}
           <button
             type="button"
-            className="hidden group-hover:block flex flex-shrink-0 focus:outline-none mt-auto mx-2 block rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-700 bg-gray-800 w-8 h-8 p-2"
+            className={hiddenMoreOptionMessage(messagesMe.id) + ` group-hover:block flex flex-shrink-0 focus:outline-none mt-auto mx-2 block rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-700 bg-gray-800 w-8 h-8 p-2`}
           >
             <MoreHorizIcon className="pr-[7px] pb-1" />
           </button>
           <button
             onClick={() => prepareReplyMessage(messagesMe, profile)}
             type="button"
-            className="hidden group-hover:block flex flex-shrink-0 focus:outline-none mt-auto mx-2 block rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-700 bg-gray-800 w-8 h-8 p-2"
+            className={hiddenMoreOptionMessage(messagesMe.id) + ` group-hover:block flex flex-shrink-0 focus:outline-none mt-auto mx-2 block rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-700 bg-gray-800 w-8 h-8 p-2`}
           >
             <ReplyIcon className="pr-[7px] pb-1" />
           </button>
-          <button
-            type="button"
-            className="hidden group-hover:block flex flex-shrink-0 focus:outline-none mt-auto mx-2 block rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-700 bg-gray-800 w-8 h-8 p-2"
-          >
-            <AddReactionIcon className="pr-[7px] pb-1" />
-          </button>
+          <div className={hiddenMoreOptionMessage(messagesMe.id) + ` group-hover:block flex flex-shrink-0 focus:outline-none mt-auto mx-2 block rounded-full cursor-pointer text-gray-500 hover:text-gray-900 hover:bg-gray-700 bg-gray-800 w-8 h-8 p-2`}>
+            <ClickAwayListener
+              mouseEvent="onMouseDown"
+              touchEvent="onTouchStart"
+              onClickAway={handleCloseEmojiReactionAway}
+            >
+              <Box sx={{ position: "relative" }}>
+                <AddReactionIcon
+                  className="pr-[7px] pb-1"
+                  onClick={() => handleClickShowEmojiReaction(messagesMe.id)}
+                />
+                {openEmojiReaction &&
+                showEmojiReactionMessageId &&
+                showEmojiReactionMessageId == messagesMe.id ? (
+                  <Box>
+                    <EmojiPicker
+                      reactionsDefaultOpen={true}
+                      onEmojiClick={handleEmojiReactionClick}
+                      lazyLoadEmojis={true}
+                      style={{
+                        position: "absolute",
+                        bottom: "3rem",
+                        right: "0",
+                        backgroundColor: "white",
+                      }}
+                    />
+                  </Box>
+                ) : null}
+              </Box>
+            </ClickAwayListener>
+          </div>
         </div>
       </div>
     </div>
